@@ -4,20 +4,36 @@ import config as cf
 from exceptions import VelocityDirectionError
 
 class Agent:
+    '''
+    A member agent of a swarm
+    '''
     def __init__(self, id: int, terrain):
         self.id = id
         self.terrain = terrain
-        self.titter = 0 # degrees
+        self.titter = 90 # degrees
         self.position = np.random.randint(0, terrain.width + 1), np.random.randint(0, terrain.height + 1)
         self.velocity = cf.COMMON_VELOCITY
 
-    def sense():
+    def sense(self):
         '''<TBD>'''
         # obstacle_end_position: end_x, end_y, direction (+1 ] or -1 [)
         # distress data:
         #   - obstacle found: {type: int, }
         #   - obstacle not found: {type: int, }
+
+
         pass
+
+    def translate(self):
+        '''
+        Agent translates at current velocity facing titter
+        '''
+        velocity_x_component = self.velocity * np.cos(self.titter / (180 / np.pi))
+        velocity_y_component = self.velocity * np.sin(self.titter / (180 / np.pi))
+
+        # recall s = vt
+        self.position = self.position[0] + velocity_x_component * cf.TRANSLATION_INTERVAL, self.position[1] + velocity_y_component * cf.TRANSLATION_INTERVAL
+
 
     def transmit_distress(self, distress_data: dict):
         '''
