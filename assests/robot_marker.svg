@@ -1,0 +1,268 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 844.11 265">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #8dc63f;
+      }
+
+      .cls-2 {
+        fill: #f15a29;
+        opacity: 0.38;
+      }
+
+      .cls-10, .cls-13, .cls-26, .cls-3, .cls-32, .cls-7, .cls-9 {
+        fill: none;
+      }
+
+      .cls-10, .cls-11, .cls-13, .cls-25, .cls-26, .cls-3, .cls-32, .cls-33, .cls-5, .cls-7, .cls-8, .cls-9 {
+        stroke: #231f20;
+        stroke-miterlimit: 10;
+      }
+
+      .cls-14, .cls-23, .cls-4 {
+        fill: #231f20;
+      }
+
+      .cls-11, .cls-33, .cls-5 {
+        fill: #2e3192;
+      }
+
+      .cls-5, .cls-8 {
+        stroke-width: 0.48px;
+      }
+
+      .cls-6 {
+        font-size: 7px;
+      }
+
+      .cls-12, .cls-28, .cls-6 {
+        fill: #fff;
+      }
+
+      .cls-12, .cls-14, .cls-23, .cls-28, .cls-6 {
+        font-family: MyriadPro-Regular, Myriad Pro;
+      }
+
+      .cls-7 {
+        stroke-width: 4.35px;
+      }
+
+      .cls-25, .cls-8 {
+        fill: #754c29;
+      }
+
+      .cls-9 {
+        stroke-opacity: 0.15;
+        stroke-width: 0.5px;
+      }
+
+      .cls-10 {
+        stroke-width: 0.75px;
+      }
+
+      .cls-11 {
+        stroke-width: 0.53px;
+      }
+
+      .cls-12, .cls-14, .cls-23 {
+        font-size: 11px;
+      }
+
+      .cls-12 {
+        letter-spacing: 0.06em;
+      }
+
+      .cls-13 {
+        stroke-opacity: 0.49;
+      }
+
+      .cls-13, .cls-25 {
+        stroke-width: 0.25px;
+      }
+
+      .cls-15 {
+        letter-spacing: -0.03em;
+      }
+
+      .cls-16 {
+        letter-spacing: 0.01em;
+      }
+
+      .cls-17 {
+        letter-spacing: -0.04em;
+      }
+
+      .cls-18 {
+        letter-spacing: 0.01em;
+      }
+
+      .cls-19 {
+        letter-spacing: -0.01em;
+      }
+
+      .cls-20, .cls-23 {
+        letter-spacing: 0em;
+      }
+
+      .cls-21 {
+        letter-spacing: 0.01em;
+      }
+
+      .cls-22 {
+        letter-spacing: 0.01em;
+      }
+
+      .cls-24 {
+        letter-spacing: 0em;
+      }
+
+      .cls-26 {
+        stroke-width: 0.5px;
+      }
+
+      .cls-27 {
+        fill: #a7a9ac;
+      }
+
+      .cls-28 {
+        font-size: 12px;
+        letter-spacing: -0.06em;
+      }
+
+      .cls-29 {
+        letter-spacing: 0em;
+      }
+
+      .cls-30 {
+        letter-spacing: -0.01em;
+      }
+
+      .cls-31 {
+        letter-spacing: 0em;
+      }
+
+      .cls-32 {
+        stroke-width: 0.28px;
+      }
+
+      .cls-33 {
+        stroke-width: 0.14px;
+      }
+    </style>
+  </defs>
+  <title>robot_marker</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <g id="agents">
+      <path class="cls-1" d="M193.61,291.2l24.87,34.91s14,42.1,12.27,57.34,6.68,79.57.15,89.29.7,23.8-37.29,66.8c0,0,34,14.08,46.4,12.23s88.26-12.25,96.17-15.58l12.39-5.2s-15.65-16.38.87-37.46,23.4-66.27,21.63-72.59-.68-42-21.27-84.27c-5.89-12.85,17.65-43.25,17.65-43.25S187.07,282.05,193.61,291.2Z" transform="translate(-193.44 -287.64)"/>
+      <g id="r_3_lidar">
+        <circle class="cls-2" cx="112.13" cy="190.2" r="46.38"/>
+        <g>
+          <line class="cls-3" x1="112.13" y1="193.38" x2="98.08" y2="175.28"/>
+          <polygon class="cls-4" points="101.34 176.72 101.05 177.17 98.12 175.32 99.18 178.62 98.67 178.79 97.17 174.09 101.34 176.72"/>
+        </g>
+        <ellipse class="cls-5" cx="112.13" cy="193.38" rx="9.2" ry="8.28"/>
+        <text id="label" class="cls-6" transform="translate(105.47 198.46)">3</text>
+      </g>
+      <g id="r_5">
+        <g>
+          <line class="cls-3" x1="121.33" y1="238.39" x2="112.7" y2="217.5"/>
+          <polygon class="cls-4" points="115.46 219.75 115.06 220.11 112.72 217.55 112.87 221.01 112.34 221.04 112.13 216.11 115.46 219.75"/>
+        </g>
+        <ellipse class="cls-5" cx="121.33" cy="238.39" rx="9.2" ry="8.28"/>
+        <text id="label-2" data-name="label" class="cls-6" transform="translate(115.47 244.47)">5</text>
+      </g>
+      <g id="r_4">
+        <g>
+          <line class="cls-3" x1="35.2" y1="248.19" x2="41.5" y2="233.59"/>
+          <polygon class="cls-4" points="41.81 237.14 41.28 237.11 41.48 233.64 39.1 236.16 38.72 235.8 42.1 232.22 41.81 237.14"/>
+        </g>
+        <ellipse class="cls-5" cx="35.2" cy="248.19" rx="9.2" ry="8.28"/>
+        <text id="label-3" data-name="label" class="cls-6" transform="translate(29.02 254.62)">4</text>
+      </g>
+      <g id="r_2">
+        <g>
+          <line class="cls-3" x1="70.56" y1="210.79" x2="70.56" y2="194.89"/>
+          <polygon class="cls-4" points="72.25 198.02 71.75 198.21 70.56 194.94 69.37 198.21 68.88 198.02 70.56 193.39 72.25 198.02"/>
+        </g>
+        <ellipse class="cls-5" cx="70.56" cy="210.79" rx="9.2" ry="8.28"/>
+        <text id="label-4" data-name="label" class="cls-6" transform="translate(64.19 216.11)">2</text>
+      </g>
+      <g id="r_1">
+        <g>
+          <line class="cls-3" x1="53.6" y1="180.54" x2="60.63" y2="142.03"/>
+          <polygon class="cls-4" points="61.73 145.42 61.21 145.5 60.62 142.08 58.87 145.08 58.41 144.81 60.9 140.56 61.73 145.42"/>
+        </g>
+        <ellipse class="cls-5" cx="53.6" cy="180.54" rx="9.2" ry="8.28"/>
+        <text id="label-5" data-name="label" class="cls-6" transform="translate(47.09 186.09)">1</text>
+      </g>
+    </g>
+    <path class="cls-7" d="M200.15,529.75s21-23.54,28.61-47.49,5.14-129.59-10.28-156.15-18.33-25.76-18.33-25.76" transform="translate(-193.44 -287.64)"/>
+    <path class="cls-7" d="M362.85,300.35s-9.61,10.46-13.41,29.78,50.51,76.27,0,163.4c0,0-19.44,18.92,3.58,42.66" transform="translate(-193.44 -287.64)"/>
+    <g id="obstacle_1">
+      <rect class="cls-8" x="158.24" y="152.37" width="11.17" height="10.06"/>
+      <rect class="cls-8" x="142.75" y="152.37" width="11.17" height="10.06"/>
+      <rect class="cls-8" x="127.25" y="152.37" width="11.17" height="10.06"/>
+      <rect class="cls-8" x="110.72" y="152.37" width="11.17" height="10.06"/>
+    </g>
+    <g id="obstacle_2">
+      <rect class="cls-8" x="88.51" y="68.65" width="11.17" height="10.06"/>
+      <rect class="cls-5" x="73.02" y="68.65" width="11.17" height="10.06"/>
+      <rect class="cls-8" x="57.52" y="68.65" width="11.17" height="10.06"/>
+      <rect class="cls-8" x="40.99" y="68.65" width="11.17" height="10.06"/>
+    </g>
+    <g id="legend">
+      <rect id="legend_box" class="cls-9" x="198.29" y="178.24" width="139.92" height="86.51" rx="7.61"/>
+      <g id="r_3_lidar-2" data-name="r_3_lidar">
+        <circle class="cls-1" cx="252.97" cy="230.83" r="22.47"/>
+        <circle class="cls-2" cx="252.97" cy="230.83" r="22.47"/>
+        <g>
+          <line class="cls-10" x1="250.42" y1="232.81" x2="241.29" y2="245.68"/>
+          <polygon class="cls-4" points="241.62 243.03 242 243.14 241.31 245.65 243.45 244.17 243.68 244.49 240.64 246.6 241.62 243.03"/>
+        </g>
+        <ellipse class="cls-11" cx="253.07" cy="230.64" rx="10.09" ry="9.08"/>
+        <text id="label-6" data-name="label" class="cls-12" transform="translate(246.69 236.77)">n</text>
+        <g id="label_velocity_vector">
+          <line class="cls-13" x1="245.53" y1="242.15" x2="280.41" y2="251.12"/>
+          <text class="cls-14" transform="translate(283.07 254.78) scale(0.58)"><tspan class="cls-15">V</tspan><tspan x="5.78" y="0">eloci</tspan><tspan class="cls-16" x="27.42" y="0">t</tspan><tspan x="31.16" y="0">y</tspan><tspan class="cls-17" x="36.34" y="0"> </tspan><tspan class="cls-15" x="38.28" y="0">V</tspan><tspan x="44.05" y="0">e</tspan><tspan class="cls-18" x="49.57" y="0">c</tspan><tspan class="cls-19" x="54.64" y="0">t</tspan><tspan x="58.21" y="0">or</tspan></text>
+        </g>
+        <g id="label_robot">
+          <line class="cls-13" x1="259.03" y1="233.95" x2="295.35" y2="239.73"/>
+          <text class="cls-14" transform="translate(296.49 241.88) scale(0.58)"><tspan class="cls-20">R</tspan><tspan x="5.96" y="0">obot</tspan></text>
+        </g>
+        <g id="label_lidar_range">
+          <line class="cls-13" x1="267.29" y1="229.97" x2="277.39" y2="228.63"/>
+          <text id="Robot_Sensor_Range" data-name="Robot Sensor Range" class="cls-14" transform="translate(279.1 231.83) scale(0.58)"><tspan class="cls-20">R</tspan><tspan x="5.96" y="0">obot </tspan><tspan class="cls-21" x="30.27" y="0">S</tspan><tspan x="35.76" y="0">ensor </tspan><tspan class="cls-22" x="63.7" y="0">R</tspan><tspan x="69.75" y="0">ange</tspan></text>
+        </g>
+        <g id="label_robot_id">
+          <line class="cls-13" x1="246.34" y1="233.88" x2="225.41" y2="230.64"/>
+          <text class="cls-23" transform="translate(201.5 232.39) scale(0.58)">R<tspan class="cls-24" x="5.96" y="0">obot ID</tspan></text>
+        </g>
+      </g>
+      <g id="label_obstacle">
+        <rect class="cls-25" x="268.82" y="187.77" width="6.32" height="6.32"/>
+        <text class="cls-14" transform="translate(279.1 194.41) scale(0.58)">Obstacle</text>
+      </g>
+      <g id="label_road">
+        <g id="path">
+          <rect class="cls-1" x="225.31" y="187.45" width="12.65" height="6.95"/>
+          <line class="cls-26" x1="225.31" y1="187.45" x2="237.96" y2="187.45"/>
+          <line class="cls-26" x1="225.31" y1="194.4" x2="237.96" y2="194.4"/>
+        </g>
+        <text class="cls-23" transform="translate(239.9 194.17) scale(0.58)">R<tspan class="cls-24" x="5.96" y="0">oad</tspan></text>
+      </g>
+    </g>
+    <g id="target">
+      <ellipse class="cls-27" cx="76.6" cy="16.14" rx="24.44" ry="7.78"/>
+      <text class="cls-28" transform="translate(61.37 19.89)">T<tspan class="cls-29" x="5.2" y="0">a</tspan><tspan class="cls-30" x="10.98" y="0">r</tspan><tspan class="cls-31" x="14.81" y="0">get</tspan></text>
+    </g>
+  </g>
+  <g id="Layer_2" data-name="Layer 2">
+    <g id="r_1-2" data-name="r_1">
+      <g>
+        <line class="cls-32" x1="841.42" y1="216.67" x2="843.43" y2="205.71"/>
+        <polygon class="cls-4" points="843.74 206.67 843.59 206.7 843.42 205.72 842.92 206.58 842.79 206.5 843.5 205.29 843.74 206.67"/>
+      </g>
+      <ellipse class="cls-33" cx="841.42" cy="216.67" rx="2.62" ry="2.36"/>
+    </g>
+  </g>
+</svg>
