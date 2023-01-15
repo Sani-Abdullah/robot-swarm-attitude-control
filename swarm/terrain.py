@@ -28,7 +28,7 @@ class Terrain:
         self.plot_axis.spines['bottom'].set_visible(False)
         self.plot_axis.set_facecolor('#8cc63f')
 
-    def plot_terrain(self, i):
+    def plot_terrain(self, animation_index):
         '''
         Plot the obstacle course and agents
         '''
@@ -79,7 +79,7 @@ class Terrain:
                     velocity_x_component = (self.agents[distressed_agent_id].position[0] - safety_point[0]) / time_to_safety # if vx is positive safety point is on the left. vice versa
                     velocity_y_component = (safety_point[1] - self.agents[distressed_agent_id].position[1]) / time_to_safety # vy is always positive. because safety point is always ahead
                     velocity_resultant = np.sqrt(np.square(velocity_x_component) + np.square(velocity_y_component))
-                    rotation_angle = 90 + np.arctan(velocity_y_component / velocity_x_component) * 180 / np.pi
+                    rotation_angle = np.arctan(velocity_y_component / velocity_x_component) * 180 / np.pi
                     return {
                         'ts': time_to_safety,
                         'vx': velocity_x_component,
@@ -92,7 +92,7 @@ class Terrain:
                     velocity_x_component = (self.agents[distressed_agent_id].position[0] - safety_point[0]) / time_to_safety # if vx is positive safety point is on the left. vice versa
                     velocity_y_component = (safety_point[1] - self.agents[distressed_agent_id].position[1]) / time_to_safety # vy is always positive. because safety point is always ahead
                     velocity_resultant = np.sqrt(np.square(velocity_x_component) + np.square(velocity_y_component))
-                    rotation_angle = 90 + np.arctan(velocity_y_component / velocity_x_component) * 180 / np.pi
+                    rotation_angle = np.arctan(velocity_y_component / velocity_x_component) * 180 / np.pi
                     return {
                         'ts': time_to_safety,
                         'vx': velocity_x_component,
@@ -103,7 +103,7 @@ class Terrain:
                 else:
                     gaps = []
                     for agent_index in range(len(in_safey_point_path_agents) - 1):
-                        gap = in_safey_point_path_agents[agent_index].position[1] - in_safey_point_path_agents[agent_index +1].position[1]
+                        gap = self.agents[in_safey_point_path_agents[agent_index]].position[1] - self.agents[in_safey_point_path_agents[agent_index + 1]].position[1]
                         gaps.append(gap)
                     found_wide_enough_gap = False
                     for gap_index in range(len(gaps)):
@@ -118,7 +118,7 @@ class Terrain:
                     velocity_x_component = (self.agents[distressed_agent_id].position[0] - safety_point[0]) / time_to_safety # if vx is positive safety point is on the left. vice versa
                     velocity_y_component = (safety_point[1] - self.agents[distressed_agent_id].position[1]) / time_to_safety # vy is always positive. because safety point is always ahead
                     velocity_resultant = np.sqrt(np.square(velocity_x_component) + np.square(velocity_y_component))
-                    rotation_angle = 90 + np.arctan(velocity_y_component / velocity_x_component) * 180 / np.pi
+                    rotation_angle = np.arctan(velocity_y_component / velocity_x_component) * 180 / np.pi
                     return {
                         'ts': time_to_safety,
                         'vx': velocity_x_component,
@@ -131,7 +131,7 @@ class Terrain:
                 velocity_x_component = (self.agents[distressed_agent_id].position[0] - safety_point[0]) / time_to_safety # if vx is positive safety point is on the left. vice versa
                 velocity_y_component = (safety_point[1] - self.agents[distressed_agent_id].position[1]) / time_to_safety # vy is always positive. because safety point is always ahead
                 velocity_resultant = np.sqrt(np.square(velocity_x_component) + np.square(velocity_y_component))
-                rotation_angle = 90 + np.arctan(velocity_y_component / velocity_x_component) * 180 / np.pi
+                rotation_angle = np.arctan(velocity_y_component / velocity_x_component) * 180 / np.pi
                 return {
                     'ts': time_to_safety,
                     'vx': velocity_x_component,
@@ -159,7 +159,7 @@ class Terrain:
                 'titter': rotation_angle,
             }
 
-    def tester(self):
-        print(self.agents[0].can_translate_on_x_axis_check())
+    # def tester(self):
+    #     print(self.agents[0].can_translate_on_x_axis_check())
 
 

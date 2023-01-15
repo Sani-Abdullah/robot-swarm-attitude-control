@@ -10,11 +10,13 @@ class Agent:
     def __init__(self, id: int, terrain):
         self.id = id
         self.terrain = terrain
-        self.titter = 90 # degrees
+        self.titter = cf.NOMINAL_TITTER # degrees
         self.position = np.random.randint(2, terrain.width - 2), np.random.randint(2, 5)
         self.velocity = cf.NOMINAL_VELOCITY
         self.can_sense = True
         self.halted = False
+        self.state = cf.FORWARD_TRANSLATION
+        self.safety_position = 0
 
     def sense(self):
         '''
@@ -67,6 +69,8 @@ class Agent:
         '''
         Agent translates at current velocity facing titter
         '''
+        if self.safety_position != 0:
+            self.reached_safety()
         if not self.halted:
             velocity_x_component = self.velocity * np.cos(self.titter / (180 / np.pi))
             velocity_y_component = self.velocity * np.sin(self.titter / (180 / np.pi))
@@ -81,6 +85,12 @@ class Agent:
         self.titter = directive['titter']
         self.velocity = directive['vr']
 
+    def reached_safety(self):
+        '''If true, the agent's velocity vector is reset to nominal'''
+        if self.position[0] >= self.safety_position[0] + 0.01 and self.position[1] >= self.safety_position[1] + 0.01:
+            self.velocity = cf.NOMINAL_VELOCITY
+            self.titter = cf.NOMINAL_TITTER
+            self.safety_position = 0
 
     def transmit_distress(self, distress_data: dict) -> dict:
         '''
@@ -92,57 +102,6 @@ class Agent:
         #     agent.receive_distress(self.id, distress_data)
         return self.terrain.receive_distress(self.id, distress_data)
 
-    # def receive_distress(self, sender_id: int, distress_data: dict):
-    #     '''<TBD>'''
-    #     safety_point = distress_data['safety_point']
-    #     fastest_time = np.abs((self.position[0] - safety_point[0]) / cf.MAXIMUM_VELOCITY) + cf.SAFETY_RADIUS / cf.MAXIMUM_VELOCITY # time to cover horizontal and safety radius
-
-    #     if sender_id != self.id:
-    #         if distress_data['type'] == cf.DISTRESS_OBSTACLE_FOUND_SAFETY:
-    #             # if self.can_translate_on_x_axis_check():
-    #             #     return {
-    #             #         'ts': cf.MAXIMUM_VELOCITY
-    #             #     }
-    #             in_safey_point_path_agents = self.get_in_safety_point_path_agents()
-    #             if in_safey_point_path_agents:
-    #                 if in_safey_point_path_agents[0].time_to_arrive(safety_point) > fastest_time: # distressed agent can reach safety point beofore others arrive
-    #                     time_to_safety = (self.time_to_arrive(safety_point) - fastest_time) / 2
-    #                     velocity_x_component = (self.position[0] - safety_point[0]) / time_to_safety # if vx is positive safety point is on the left. vice versa
-    #                     velocity_y_component = (safety_point[1] - self.position[1]) / time_to_safety # vy is always positive. because safety point is always ahead
-    #                     velocity_resultant = np.sqrt(np.square(velocity_x_component) + np.square(velocity_y_component))
-    #                     rotation_angle = np.arctan(velocity_y_component / velocity_x_component) * 180 / np.pi
-    #                     return {
-    #                         'directive': 'proceed',
-    #                         'ts': time_to_safety,
-    #                         'vx': velocity_x_component,
-    #                         'vy': velocity_y_component,
-    #                         'vr': velocity_resultant,
-    #                         'titter': rotation_angle,
-    #                 }
-    #                 elif len(in_safey_point_path_agents) == 1:
-    #                     pass
-    #                 else:
-    #                     gaps = []
-    #                     for agent_index in range(len(in_safey_point_path_agents) - 1):
-    #                         gap = in_safey_point_path_agents[agent_index].position[1] - in_safey_point_path_agents[agent_index +1].position[1]
-    #                         gaps.append(gap)
-    #             else:
-    #                 time_to_safety = (self.time_to_arrive(safety_point) - fastest_time) / 2
-    #                 velocity_x_component = (self.position[0] - safety_point[0]) / time_to_safety # if vx is positive safety point is on the left. vice versa
-    #                 velocity_y_component = (safety_point[1] - self.position[1]) / time_to_safety # vy is always positive. because safety point is always ahead
-    #                 velocity_resultant = np.sqrt(np.square(velocity_x_component) + np.square(velocity_y_component))
-    #                 rotation_angle = np.arctan(velocity_y_component / velocity_x_component) * 180 / np.pi
-    #                 return {
-    #                     'directive': 'proceed',
-    #                     'ts': time_to_safety,
-    #                     'vx': velocity_x_component,
-    #                     'vy': velocity_y_component,
-    #                     'vr': velocity_resultant,
-    #                     'titter': rotation_angle,
-    #             }
-
-
-
     def calculate_safety_position(self, obstacle_end_position: tuple) -> tuple:
         '''
         Returns the safest point to rotate to
@@ -150,6 +109,7 @@ class Agent:
         obstacle_end_x, obstacle_end_y, direction = obstacle_end_position
         safety_position_x = obstacle_end_x + direction * (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE)
         safety_position_y = obstacle_end_y - cf.AGENT_RADIUS - cf.OBSTACLE_ALLOWANCE
+        self.safety_position = safety_position_x, safety_position_y
         return safety_position_x, safety_position_y
     
     def in_path_check(self, distressed_agent_safety_position: tuple) -> bool:
@@ -166,6 +126,7 @@ class Agent:
         else:
             return True
 
+
     def get_in_safety_point_path_agents(self) -> list:
         '''
         Returns a list of all the agents that are on a collision course to the distress safety point. Starting from the closest
@@ -177,11 +138,10 @@ class Agent:
             if agent.in_path_check(self.position):
                 in_path_agents.append(agent.id)
         if in_path_agents:
-            sorted_in_path_agents = list(sorted(in_path_agents, key=lambda x: x.position[1], reverse=True))
+            sorted_in_path_agents = list(sorted(in_path_agents, key=lambda x: self.terrain.agents[x].position[1], reverse=True))
             return sorted_in_path_agents
         return in_path_agents
             
-
     def position_request(self) -> dict:
         '''
         Get the positions of all agents in the terrain -> {node_id: position}
