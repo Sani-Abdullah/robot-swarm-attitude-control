@@ -28,4 +28,4 @@ OBSTACLE_ALLOWANCE = 0.1 # metres
 OBSTACLE_PANIC_ACT_DISTANCE = 6 # metres # distance between agent and obstacle that will trigger distress
 
 # translaion
-TRANSLATION_INTERVAL = 1 # seconds
+TRANSLATION_INTERVAL = 0.5 # seconds
