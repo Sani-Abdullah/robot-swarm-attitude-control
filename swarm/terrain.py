@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from swarm.agent import Agent
-from matplotlib.patches import Rectangle
+from matplotlib.patches import Rectangle, Ellipse
 
 
 class Terrain:
@@ -30,8 +30,16 @@ class Terrain:
         self.plot_axis.spines['top'].set_visible(False)
         self.plot_axis.spines['bottom'].set_visible(False)
         self.plot_axis.set_facecolor('#8cc63f')
+        # self.plot_axis.spines.clear()
+        for obstacle in self.obstacles:
+            x, y, dx, dy = obstacle
+            rectangle = Rectangle((x, y), dx, dy, fc='#764c29', ec='black', lw=0.484)
+            self.plot_axis.add_patch(rectangle)
+        target_ellipse = Ellipse((8, 45), 5, 3, fc='#a7a9ac')
+        self.plot_axis.add_patch(target_ellipse)
+        self.plot_axis.annotate('Target', (8, 45), color='w', weight='light', fontsize=4.5, ha='center', va='center')
 
-    def plot_terrain(self, animation_index):
+    def plot_terrain(self, animate_index):
         '''
         Plot the obstacle course and agents
         '''
@@ -40,11 +48,6 @@ class Terrain:
         for agent in self.agents:
             agent.translate()
 
-        # self.plot_axis.spines.clear()
-        for obstacle in self.obstacles:
-            x, y, dx, dy = obstacle
-            rectangle = Rectangle((x, y), dx, dy, fc='#764c29', ec='black', lw=0.484)
-            self.plot_axis.add_patch(rectangle)
         
         agents_x = []
         agents_y = []
@@ -64,7 +67,7 @@ class Terrain:
         if not os.path.exists('output'):
             os.makedirs('output')
         anim = animation.FuncAnimation(self.plot_figure, self.plot_terrain, frames=200, interval=cf.TRANSLATION_INTERVAL * 1000, blit=True)
-        anim.save('output/swarm-control.mp4', writer = 'ffmpeg', fps = 40)
+        anim.save('output/swarm-control.mp4', writer = 'ffmpeg', dpi=300, fps = 40)
 
     def receive_distress(self, sender_id: int, distress_data: dict):
         '''
