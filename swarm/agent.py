@@ -7,13 +7,13 @@ class Agent:
     '''
     A member agent of a swarm
     '''
-    def __init__(self, id: int, terrain):
+    def __init__(self, id: int, terrain, x):
         self.id = id
         self.terrain = terrain
         self.titter = cf.NOMINAL_TITTER # degrees
         self.velocity = cf.NOMINAL_VELOCITY
         # self.position = 17, 5
-        self.position = np.random.randint(2, terrain.width - 2), np.random.randint(2, 5)
+        self.position = x, np.random.randint(2, 5)
         np.random.randint(2, terrain.width - 2), np.random.randint(2, 5)
         self.safety_position = 0
         self.states = [cf.FORWARD_TRANSLATION]
@@ -28,14 +28,15 @@ class Agent:
             if holes:
                 best_hole = self.get_best_hole(holes)
                 safety_position = self.calculate_safety_position(best_hole)
-                velocity_x = 0.75 * cf.NOMINAL_VELOCITY
+                velocity_x = 0.75 * cf.MAXIMUM_VELOCITY
                 velocity_y = cf.NOMINAL_VELOCITY
                 self.velocity = np.sqrt(np.square(velocity_x) + np.square(velocity_y))
                 dydx = (self.position[1] - safety_position[1]) / (self.position[0] - safety_position[0])
                 titter = np.arctan(dydx) * 180 / np.pi
                 self.titter = np.abs(titter) if dydx > 0 else 180 + titter
             else:
-                # <TBD: no passage. obstacle spans terrain width>
+                self.states.append(cf.HALTING)
+                self.velocity = 0
                 pass
 
     def translate(self):
@@ -123,9 +124,9 @@ class Agent:
         '''
         Return the hole that is closest to the agent and wide enough
         '''
-        widths = [hole[1] for hole in holes if hole[1] > 2 * (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE)]
-        best_index = np.argmin(np.abs(widths))
-        best_hole = holes[best_index]
+        wide_enough_holes = [hole for hole in holes if hole[1] > 2 * (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE)] # first select holes that the agent can pass freely
+        sorted_holes = sorted(wide_enough_holes, key=lambda x: np.abs(x[2])) # sort the holes starting from the closest to the agent
+        best_hole = sorted_holes[0]
         return best_hole
 
     def calculate_safety_position(self, best_hole: tuple) -> tuple:
@@ -135,7 +136,10 @@ class Agent:
         self.states.append(cf.DODGING_OBSTACLE)
         self.states.remove(cf.FORWARD_TRANSLATION)
         safety_x_spread_margin = 5 * (cf.OBSTACLE_ALLOWANCE + cf.AGENT_RADIUS) if best_hole[1] > self.terrain.width / 2 else 2 * (cf.OBSTACLE_ALLOWANCE + cf.AGENT_RADIUS)
-        safety_x = np.random.randint(best_hole[0][0] + safety_x_spread_margin, best_hole[0][0] + best_hole[1] - safety_x_spread_margin) + np.random.random()
+        try:
+            safety_x = np.random.randint(best_hole[0][0] + safety_x_spread_margin, best_hole[0][0] + best_hole[1] - safety_x_spread_margin) + np.random.random()
+        except ValueError:
+            safety_x = best_hole[0][0] + best_hole[1] / 2
         safety_y = best_hole[0][1]
         self.safety_position = safety_x, safety_y
         return self.safety_position
