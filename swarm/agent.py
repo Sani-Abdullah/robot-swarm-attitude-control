@@ -12,7 +12,9 @@ class Agent:
         self.terrain = terrain
         self.titter = cf.NOMINAL_TITTER # degrees
         self.velocity = cf.NOMINAL_VELOCITY
-        self.position = 17, 5
+        # self.position = 17, 5
+        self.position = np.random.randint(2, terrain.width - 2), np.random.randint(2, 5)
+        np.random.randint(2, terrain.width - 2), np.random.randint(2, 5)
         self.safety_position = 0
         self.states = [cf.FORWARD_TRANSLATION]
 
@@ -81,7 +83,9 @@ class Agent:
         '''
         obstacles = []
         for obstacle in self.terrain.obstacles:
-            if obstacle[1] - self.position[1] <= cf.OBSTACLE_PANIC_ACT_DISTANCE:
+            agent_safety_x_l = self.position[0] + cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE # count as obstacle if safety radius is in the obstacle - left side
+            agent_safety_x_r = self.position[0] - cf.AGENT_RADIUS - cf.OBSTACLE_ALLOWANCE # count as obstacle if safety radius is in the obstacle - right side
+            if obstacle[1] - self.position[1] <= cf.OBSTACLE_PANIC_ACT_DISTANCE and agent_safety_x_l > obstacle[0] and agent_safety_x_r < obstacle[0] + obstacle[2]: # if and only if obstacle is the agent's vicinity
                 obstacles.append(obstacle)
         sorted_obstacles = sorted(obstacles, key=lambda  x: x[0])
         return sorted_obstacles

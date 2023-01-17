@@ -14,7 +14,7 @@ class Terrain:
     def __init__(self, width: float, height: float, obstacles: list):
         self.width = width
         self.height = height
-        self.agents = [Agent(i, self) for i in range(1)]
+        self.agents = [Agent(i, self) for i in range(5)]
         self.obstacles = obstacles
 
         # create and configure plot
