@@ -2,19 +2,20 @@ import numpy as np
 import config as cf
 # from terrain import Terrain
 from util.exceptions import VelocityDirectionError
+from datetime import datetime, timedelta
 
 class Agent:
     '''
     A member agent of a swarm
     '''
-    def __init__(self, id: int, terrain, x):
+    def __init__(self, id: int, terrain, x, y):
         self.id = id
         self.terrain = terrain
         self.titter = cf.NOMINAL_TITTER # degrees
         self.velocity = cf.NOMINAL_VELOCITY
         # self.position = 17, 5
-        self.position = x, np.random.randint(2, 5)
-        np.random.randint(2, terrain.width - 2), np.random.randint(2, 5)
+        self.position = x, y
+        # np.random.randint(2, terrain.width - 2), np.random.randint(2, 5)
         self.safety_position = 0
 
         self.states = [cf.FORWARD_TRANSLATION]
@@ -28,14 +29,9 @@ class Agent:
             holes = self.get_holes(obstacles)
             if holes:
                 best_hole = self.get_best_hole(holes)
-                if best_hole[0] not in self.terrain.hole_queue_lengths:
-                    self.terrain.hole_queue_lengths[best_hole[0]] = 0
-                else:
-                    self.terrain.hole_queue_lengths[best_hole[0]] += 1
-                print(self.terrain.hole_queue_lengths)
                 safety_position = self.calculate_safety_position(best_hole)
-                velocity_x = 0.75 * cf.MAXIMUM_VELOCITY
-                velocity_y = self.obstacle_dodging_y_velocity(safety_position, self.terrain.hole_queue_lengths[best_hole[0]])
+                velocity_x = np.random.random() * cf.MAXIMUM_VELOCITY
+                velocity_y = self.obstacle_dodging_y_velocity(safety_position, best_hole[0])
                 self.velocity = np.sqrt(np.square(velocity_x) + np.square(velocity_y))
                 dydx = (self.position[1] - safety_position[1]) / (self.position[0] - safety_position[0])
                 titter = np.arctan(dydx) * 180 / np.pi
@@ -44,7 +40,8 @@ class Agent:
                 self.states.append(cf.HALTING)
                 self.velocity = 0
                 pass
-
+        else:
+            self.no_obstacle_hole_appraoch()
     def translate(self):
         '''
         Agent translates at current velocity facing titter
@@ -68,12 +65,20 @@ class Agent:
         If true, the agent's velocity vector is reset to nominal
         '''
         if self.safety_position != 0 and self.position[1] >= self.safety_position[1] + 0.001:
-            self.terrain.hole_queue_lengths[self.best_hole[0]] -= 1
             self.states.append(cf.FORWARD_TRANSLATION)
             self.states.remove(cf.DODGING_OBSTACLE)
             self.velocity = cf.NOMINAL_VELOCITY
             self.titter = cf.NOMINAL_TITTER
             self.safety_position = 0
+        try:
+            if self.position[1] >= self.best_hole[1] + 0.001:
+                self.states.remove(cf.FORWARD_TRANSLATION_AVOIDING)
+                self.velocity = cf.NOMINAL_VELOCITY
+                del self.best_hole
+        except AttributeError:
+            pass
+        except ValueError:
+            pass
 
     def transmit_distress(self, distress_data: dict) -> dict:
         '''
@@ -136,6 +141,47 @@ class Agent:
         self.best_hole = sorted_holes[0]
         return self.best_hole
 
+    def no_obstacle_hole_appraoch(self):
+        if cf.FORWARD_TRANSLATION_AVOIDING not in self.states:
+            obstacles = []
+            for obstacle in self.terrain.obstacles:
+                if obstacle[1] - self.position[1] <= cf.OBSTACLE_PANIC_ACT_DISTANCE:
+                    obstacles.append(obstacle)
+            sorted_obstacles = sorted(obstacles, key=lambda  x: x[0])
+            if sorted_obstacles:
+                holes = self.get_holes(sorted_obstacles=sorted_obstacles)
+                best_hole = self.get_best_hole(holes)
+
+                sy = best_hole[0][1] - self.position[1]
+                sa = 3 * (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE) # agent safety distance
+
+
+                # time_to_arrive = (sy + sa) / cf.NOMINAL_VELOCITY
+                # time_to_arrive_date = datetime.now() + timedelta(seconds=time_to_arrive)
+                # self.terrain.holes_time_to_arrive[best_hole[0]] = time_to_arrive_date
+
+                if best_hole[0] not in self.terrain.holes_time_to_arrive:
+                    time_to_arrive = (sy - 8 * sa) / cf.NOMINAL_VELOCITY
+                    time_to_arrive_date = datetime.now() + timedelta(seconds=time_to_arrive)
+                    self.terrain.holes_time_to_arrive[best_hole[0]] = time_to_arrive_date.timestamp()
+                    y_velocity = sy / time_to_arrive # the same as nominal velocity
+                else:
+                    if datetime.now() - datetime.fromtimestamp(self.terrain.holes_time_to_arrive[best_hole[0]]) > timedelta(seconds = sa / cf.NOMINAL_VELOCITY): # if the previous agent has arrived
+                        time_to_arrive = (sy - 8 * sa) / cf.NOMINAL_VELOCITY
+                        time_to_arrive_date = datetime.now() + timedelta(seconds=time_to_arrive)
+                        self.terrain.holes_time_to_arrive[best_hole[0]] = time_to_arrive_date.timestamp()
+                        y_velocity = sy / time_to_arrive # the same as nominal velocity
+                    else:
+                        time_to_arrive = sy / cf.NOMINAL_VELOCITY
+                        time_to_arrive_date = datetime.now() + timedelta(seconds=time_to_arrive)
+                        self.terrain.holes_time_to_arrive[best_hole[0]] = time_to_arrive_date.timestamp()
+                        y_velocity =  sy / time_to_arrive
+                self.states.append(cf.FORWARD_TRANSLATION_AVOIDING)
+                self.velocity = y_velocity
+
+
+        
+
     def calculate_safety_position(self, best_hole: tuple) -> tuple:
         '''
         Returns the safest point to rotate to
@@ -179,11 +225,27 @@ class Agent:
     #     time_to_arrive = (sy + sa * hole_queue_length) / cf.NOMINAL_VELOCITY
     #     return time_to_arrive
     
-    def obstacle_dodging_y_velocity(self, destination: tuple, hole_queue_length: int = 0) -> float:
+    def obstacle_dodging_y_velocity(self, destination: tuple, hole_start_position: tuple) -> float:
         sy = destination[1] - self.position[1]
-        sa = 2 * (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE) # agent safety distance
-        time_to_arrive = (sy + sa * hole_queue_length) / cf.NOMINAL_VELOCITY
-        y_velocity = sy / time_to_arrive
+        sa = 3 * (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE) # agent safety distance
+        if hole_start_position not in self.terrain.holes_time_to_arrive:
+            time_to_arrive = sy / cf.NOMINAL_VELOCITY
+            time_to_arrive_date = datetime.now() + timedelta(seconds=time_to_arrive)
+            self.terrain.holes_time_to_arrive[hole_start_position] = time_to_arrive_date.timestamp()
+            y_velocity = sy / time_to_arrive # the same as nominal velocity
+        else:
+            if datetime.now() - datetime.fromtimestamp(self.terrain.holes_time_to_arrive[hole_start_position]) > timedelta(seconds = sa / cf.NOMINAL_VELOCITY): # if the previous agent has arrived
+                time_to_arrive = sy / cf.NOMINAL_VELOCITY
+                time_to_arrive_date = datetime.now() + timedelta(seconds=time_to_arrive)
+                self.terrain.holes_time_to_arrive[hole_start_position] = time_to_arrive_date.timestamp()
+                y_velocity = sy / time_to_arrive # the same as nominal velocity
+            else:
+                time_to_arrive = (sy + 8* sa) / cf.NOMINAL_VELOCITY
+                time_to_arrive_date = datetime.now() + timedelta(seconds=time_to_arrive)
+                self.terrain.holes_time_to_arrive[hole_start_position] = time_to_arrive_date.timestamp()
+                y_velocity =  sy / time_to_arrive
+
+
         return y_velocity
 
 

@@ -15,9 +15,10 @@ class Terrain:
         self.width = width
         self.height = height
         # self.agents = [Agent(i, self, ) for i in range(5)]
-        self.agents = [Agent(0, self, 5), Agent(1, self, 8), Agent(2, self, 11), Agent(3, self, 14), Agent(4, self, 17)]
+        safety_height = cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE
+        self.agents = [Agent(0, self, 5, safety_height), Agent(1, self, 8, 2 * safety_height), Agent(2, self, 11, 3 * safety_height), Agent(3, self, 14, safety_height), Agent(4, self, 19, 2 * safety_height)]
         self.obstacles = obstacles
-        self.hole_queue_lengths = {}
+        self.holes_time_to_arrive = {}
 
         # create and configure plot
         self.plot_figure = plt.figure(facecolor='white', figsize=(2, 2), dpi=300, frameon=True)
