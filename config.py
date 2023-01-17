@@ -28,4 +28,4 @@ OBSTACLE_ALLOWANCE = 0.1 # metres
 TRANSLATION_INTERVAL = 1 # seconds
 
 # sensing
-OBSTACLE_PANIC_ACT_DISTANCE = AGENT_RADIUS + OBSTACLE_ALLOWANCE +  10 * TRANSLATION_INTERVAL * NOMINAL_VELOCITY # metres # distance between agent and obstacle that will trigger distress
+OBSTACLE_PANIC_ACT_DISTANCE = AGENT_RADIUS + OBSTACLE_ALLOWANCE + 7 # metres # distance between agent and obstacle that will trigger distress

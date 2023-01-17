@@ -16,6 +16,7 @@ class Agent:
         self.position = x, np.random.randint(2, 5)
         np.random.randint(2, terrain.width - 2), np.random.randint(2, 5)
         self.safety_position = 0
+
         self.states = [cf.FORWARD_TRANSLATION]
 
     def sense(self):
@@ -27,9 +28,14 @@ class Agent:
             holes = self.get_holes(obstacles)
             if holes:
                 best_hole = self.get_best_hole(holes)
+                if best_hole[0] not in self.terrain.hole_queue_lengths:
+                    self.terrain.hole_queue_lengths[best_hole[0]] = 0
+                else:
+                    self.terrain.hole_queue_lengths[best_hole[0]] += 1
+                print(self.terrain.hole_queue_lengths)
                 safety_position = self.calculate_safety_position(best_hole)
                 velocity_x = 0.75 * cf.MAXIMUM_VELOCITY
-                velocity_y = cf.NOMINAL_VELOCITY
+                velocity_y = self.obstacle_dodging_y_velocity(safety_position, self.terrain.hole_queue_lengths[best_hole[0]])
                 self.velocity = np.sqrt(np.square(velocity_x) + np.square(velocity_y))
                 dydx = (self.position[1] - safety_position[1]) / (self.position[0] - safety_position[0])
                 titter = np.arctan(dydx) * 180 / np.pi
@@ -62,6 +68,7 @@ class Agent:
         If true, the agent's velocity vector is reset to nominal
         '''
         if self.safety_position != 0 and self.position[1] >= self.safety_position[1] + 0.001:
+            self.terrain.hole_queue_lengths[self.best_hole[0]] -= 1
             self.states.append(cf.FORWARD_TRANSLATION)
             self.states.remove(cf.DODGING_OBSTACLE)
             self.velocity = cf.NOMINAL_VELOCITY
@@ -126,8 +133,8 @@ class Agent:
         '''
         wide_enough_holes = [hole for hole in holes if hole[1] > 2 * (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE)] # first select holes that the agent can pass freely
         sorted_holes = sorted(wide_enough_holes, key=lambda x: np.abs(x[2])) # sort the holes starting from the closest to the agent
-        best_hole = sorted_holes[0]
-        return best_hole
+        self.best_hole = sorted_holes[0]
+        return self.best_hole
 
     def calculate_safety_position(self, best_hole: tuple) -> tuple:
         '''
@@ -163,11 +170,23 @@ class Agent:
         '''
         pass
 
-    def time_to_arrive(self, destination: tuple, direction: str = 'free') -> float:
-        '''
-        How long before the forward-tip of safety radius reaches destination
-        '''
-        pass
+    # def time_to_arrive_safety_point(self, destination: tuple, hole_queue_length: int = 0) -> float:
+    #     '''
+    #     How long before the forward-tip of safety radius reaches destination
+    #     '''
+    #     sy = destination[1] - self.position[1]
+    #     sa = 2 * (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE) # agent safety distance
+    #     time_to_arrive = (sy + sa * hole_queue_length) / cf.NOMINAL_VELOCITY
+    #     return time_to_arrive
+    
+    def obstacle_dodging_y_velocity(self, destination: tuple, hole_queue_length: int = 0) -> float:
+        sy = destination[1] - self.position[1]
+        sa = 2 * (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE) # agent safety distance
+        time_to_arrive = (sy + sa * hole_queue_length) / cf.NOMINAL_VELOCITY
+        y_velocity = sy / time_to_arrive
+        return y_velocity
+
+
 
     def time_to_clear(self, destination: tuple, direction: str = 'free') -> float:
         '''

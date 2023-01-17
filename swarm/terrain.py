@@ -17,6 +17,7 @@ class Terrain:
         # self.agents = [Agent(i, self, ) for i in range(5)]
         self.agents = [Agent(0, self, 5), Agent(1, self, 8), Agent(2, self, 11), Agent(3, self, 14), Agent(4, self, 17)]
         self.obstacles = obstacles
+        self.hole_queue_lengths = {}
 
         # create and configure plot
         self.plot_figure = plt.figure(facecolor='white', figsize=(2, 2), dpi=300, frameon=True)
