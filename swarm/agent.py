@@ -13,6 +13,7 @@ class Agent:
         self.titter = cf.NOMINAL_TITTER # degrees
         self.velocity = cf.NOMINAL_VELOCITY
         self.position = 17, 5
+        self.safety_position = 0
 
     def sense(self):
         '''
@@ -42,7 +43,9 @@ class Agent:
         self.velocity = directive['vr']
 
     def reached_safety(self):
-        '''If true, the agent's velocity vector is reset to nominal'''
+        '''
+        If true, the agent's velocity vector is reset to nominal
+        '''
         pass
 
     def transmit_distress(self, distress_data: dict) -> dict:
@@ -55,11 +58,63 @@ class Agent:
         #     agent.receive_distress(self.id, distress_data)
         return self.terrain.receive_distress(self.id, distress_data)
 
-    def calculate_safety_position(self, obstacle_end_position: tuple) -> tuple:
+    def get_obstacles(self) -> list:
+        '''
+        Check for obstacles within sensing range
+        '''
+        obstacles = []
+        for obstacle in self.terrain.obstacles:
+            if obstacles[1] - self.position[1] <= cf.OBSTACLE_PANIC_ACT_DISTANCE:
+                obstacles.append(obstacle)
+        sorted_obstacles = sorted(obstacles, key=lambda  x: x[0])
+        return sorted_obstacles
+
+    def get_holes(self, sorted_obstacles: list) -> list:
+        '''
+        Returns the details of the openings between obstacles
+        
+        Hole and obstacle archtecture:
+        hole_0 [obatacle_0] hole_1 [obtacle_1] hole_2 [obstacle_2] .... [obstacle_n] hole_n+1
+        
+        Note: hole_0 and hole_n+1 could be empty
+        '''
+        holes = []
+        if sorted_obstacles[0][0] != 0: # add leftmost hole if it exists
+            hole_start_position = 0, sorted_obstacles[0][1]
+            hole_width = sorted_obstacles[0][0] - 0
+            hole_distance_from_self = self.position[0] - (hole_start_position[0] + hole_width / 2)
+            holes.append((hole_start_position, hole_width, hole_distance_from_self))
+        for obstacle_index in range(len(sorted_obstacles) - 1): # holes in between the obstacles
+            hole_start_position = sorted_obstacles[obstacle_index][0] + sorted_obstacles[obstacle_index][2], sorted_obstacles[obstacle_index][1]
+            hole_width = sorted_obstacles[obstacle_index + 1][0] - hole_start_position[0]
+            hole_distance_from_self = self.position[0] - (hole_start_position[0] + hole_width / 2)
+            holes.append((hole_start_position, hole_width, hole_distance_from_self))
+        if sorted_obstacles[-1][0] + sorted_obstacles[-1][2] < self.terrain.width: # add rightmost hole if it exists
+            hole_start_position = sorted_obstacles[-1][0] + sorted_obstacles[-1][2], sorted_obstacles[-1][1]
+            hole_width = self.terrain.width - hole_start_position[0]
+            hole_distance_from_self = self.position[0] - (hole_start_position[0] + hole_width / 2)
+            holes.append((hole_start_position, hole_width, hole_distance_from_self))
+        if holes:
+            return holes
+        return []
+
+    def get_best_hole(self, holes) -> tuple:
+        '''
+        Return the hole that is closest to the agent and wide enough
+        '''
+        widths = [hole[1] for hole in holes if hole[1] > 2 * (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE)]
+        best_index = np.argmin(np.abs(widths))
+        best_hole = holes[best_index]
+        return best_hole
+
+    def calculate_safety_position(self, best_hole: tuple) -> tuple:
         '''
         Returns the safest point to rotate to
         '''
-        pass
+        safety_x = np.random.randint(best_hole[0][0] + cf.OBSTACLE_ALLOWANCE + cf.AGENT_RADIUS, best_hole[0][0] + best_hole[1] - cf.AGENT_RADIUS) + np.random.random()
+        safety_y = best_hole[0][1]
+        self.safety_position = safety_x, safety_y
+        return self.safety_position
     
     def in_path_check(self, distressed_agent_safety_position: tuple) -> bool:
         '''
@@ -95,17 +150,6 @@ class Agent:
     def can_translate_on_x_axis_check(self, safe_radius_units: int = 1) -> tuple:
         '''
         Can this agent translate along the x axis to give way to the distressed agent?
-        '''
-        pass
-
-    def get_holes(self, obstacles: list) -> list:
-        '''
-        Returns the details of the openings between obstacles
-        
-        Hole and obstacle archtecture:
-        hole_0 [obatacle_0] hole_1 [obtacle_1] hole_2 [obstacle_2] .... [obstacle_n] hole_n+1
-        
-        Note: hole_0 and hole_n+1 could be empty
         '''
         pass
 
