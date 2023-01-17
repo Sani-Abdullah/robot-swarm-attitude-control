@@ -32,8 +32,8 @@ class Terrain:
         '''
         Plot the obstacle course and agents
         '''
-        # for agent in self.agents:
-        #     agent.sense()
+        for agent in self.agents:
+            agent.sense()
         for agent in self.agents:
             agent.translate()
 
@@ -48,7 +48,6 @@ class Terrain:
         for agent in self.agents:
             agents_x.append(agent.position[0])
             agents_y.append(agent.position[1])
-        # print(agents_x)
         if len(self.plot_axis.lines) > 1:
             self.plot_axis.lines.pop(0)
         agent_positions = self.plot_axis.plot(agents_x, agents_y, 'o', markersize= 2 * cf.AGENT_RADIUS, c='#2e3192')
@@ -61,8 +60,8 @@ class Terrain:
     def animate(self):
         if not os.path.exists('output'):
             os.makedirs('output')
-        anim = animation.FuncAnimation(self.plot_figure, self.plot_terrain, frames=100, interval=cf.TRANSLATION_INTERVAL * 1000, blit=True)
-        anim.save('output/swarm-control.mp4', writer = 'ffmpeg', fps = 20)
+        anim = animation.FuncAnimation(self.plot_figure, self.plot_terrain, frames=200, interval=cf.TRANSLATION_INTERVAL * 1000, blit=True)
+        anim.save('output/swarm-control.mp4', writer = 'ffmpeg', fps = 40)
 
     def receive_distress(self, sender_id: int, distress_data: dict):
         '''

@@ -14,21 +14,33 @@ class Agent:
         self.velocity = cf.NOMINAL_VELOCITY
         self.position = 17, 5
         self.safety_position = 0
+        self.states = [cf.FORWARD_TRANSLATION]
 
     def sense(self):
         '''
         Scan the terrain for obstacles and wait for the swarm to decide on a directive
         '''
-        pass
-
+        obstacles = self.get_obstacles()
+        if obstacles and cf.DODGING_OBSTACLE not in self.states:
+            holes = self.get_holes(obstacles)
+            if holes:
+                best_hole = self.get_best_hole(holes)
+                safety_position = self.calculate_safety_position(best_hole)
+                velocity_x = 0.75 * cf.NOMINAL_VELOCITY
+                velocity_y = cf.NOMINAL_VELOCITY
+                self.velocity = np.sqrt(np.square(velocity_x) + np.square(velocity_y))
+                dydx = (self.position[1] - safety_position[1]) / (self.position[0] - safety_position[0])
+                titter = np.arctan(dydx) * 180 / np.pi
+                self.titter = np.abs(titter) if dydx > 0 else 180 + titter
+            else:
+                # <TBD: no passage. obstacle spans terrain width>
+                pass
 
     def translate(self):
         '''
         Agent translates at current velocity facing titter
         '''
-        # if self.safety_position != 0:
-        #     self.reached_safety()
-        # if not self.halted:
+        self.reached_safety_do()
         velocity_x_component = self.velocity * np.cos(self.titter / (180 / np.pi))
         velocity_y_component = self.velocity * np.sin(self.titter / (180 / np.pi))
 
@@ -42,11 +54,16 @@ class Agent:
         self.titter = directive['titter']
         self.velocity = directive['vr']
 
-    def reached_safety(self):
+    def reached_safety_do(self):
         '''
         If true, the agent's velocity vector is reset to nominal
         '''
-        pass
+        if self.safety_position != 0 and self.position[1] >= self.safety_position[1] + 0.001:
+            self.states.append(cf.FORWARD_TRANSLATION)
+            self.states.remove(cf.DODGING_OBSTACLE)
+            self.velocity = cf.NOMINAL_VELOCITY
+            self.titter = cf.NOMINAL_TITTER
+            self.safety_position = 0
 
     def transmit_distress(self, distress_data: dict) -> dict:
         '''
@@ -64,7 +81,7 @@ class Agent:
         '''
         obstacles = []
         for obstacle in self.terrain.obstacles:
-            if obstacles[1] - self.position[1] <= cf.OBSTACLE_PANIC_ACT_DISTANCE:
+            if obstacle[1] - self.position[1] <= cf.OBSTACLE_PANIC_ACT_DISTANCE:
                 obstacles.append(obstacle)
         sorted_obstacles = sorted(obstacles, key=lambda  x: x[0])
         return sorted_obstacles
@@ -111,7 +128,10 @@ class Agent:
         '''
         Returns the safest point to rotate to
         '''
-        safety_x = np.random.randint(best_hole[0][0] + cf.OBSTACLE_ALLOWANCE + cf.AGENT_RADIUS, best_hole[0][0] + best_hole[1] - cf.AGENT_RADIUS) + np.random.random()
+        self.states.append(cf.DODGING_OBSTACLE)
+        self.states.remove(cf.FORWARD_TRANSLATION)
+        safety_x_spread_margin = 5 * (cf.OBSTACLE_ALLOWANCE + cf.AGENT_RADIUS) if best_hole[1] > self.terrain.width / 2 else 2 * (cf.OBSTACLE_ALLOWANCE + cf.AGENT_RADIUS)
+        safety_x = np.random.randint(best_hole[0][0] + safety_x_spread_margin, best_hole[0][0] + best_hole[1] - safety_x_spread_margin) + np.random.random()
         safety_y = best_hole[0][1]
         self.safety_position = safety_x, safety_y
         return self.safety_position
