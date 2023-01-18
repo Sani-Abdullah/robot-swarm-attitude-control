@@ -17,6 +17,7 @@ class Agent:
         self.position = x, y
         # np.random.randint(2, terrain.width - 2), np.random.randint(2, 5)
         self.safety_position = 0
+        self.avoiding_position = 0
 
         self.states = [cf.FORWARD_TRANSLATION]
 
@@ -27,10 +28,12 @@ class Agent:
         obstacles = self.get_obstacles()
         if obstacles and cf.DODGING_OBSTACLE not in self.states:
             holes = self.get_holes(obstacles)
+            self.transmit_distress({})
             if holes:
                 best_hole = self.get_best_hole(holes)
                 safety_position = self.calculate_safety_position(best_hole)
-                # velocity_x = np.random.random() * cf.MAXIMUM_VELOCITY
+                # self.slow_down_in_safety_point_path()
+                velocity_x = np.random.random() * cf.MAXIMUM_VELOCITY
                 velocity_x, velocity_y = self.obstacle_dodging_velocity(safety_position, best_hole[0])
                 self.velocity = np.sqrt(np.square(velocity_x) + np.square(velocity_y))
                 dydx = (self.position[1] - safety_position[1]) / (self.position[0] - safety_position[0])
@@ -42,15 +45,16 @@ class Agent:
                 pass
         else:
             self.no_obstacle_hole_appraoch()
-            # pass
+            pass
+
     def translate(self):
         '''
         Agent translates at current velocity facing titter
         '''
         self.reached_safety_do()
+        self.reached_avoiding_point_do()
         velocity_x_component = self.velocity * np.cos(self.titter / (180 / np.pi))
         velocity_y_component = self.velocity * np.sin(self.titter / (180 / np.pi))
-
         # recall s = vt
         self.position = self.position[0] + velocity_x_component * cf.TRANSLATION_INTERVAL, self.position[1] + velocity_y_component * cf.TRANSLATION_INTERVAL
 
@@ -71,15 +75,23 @@ class Agent:
             self.velocity = cf.NOMINAL_VELOCITY
             self.titter = cf.NOMINAL_TITTER
             self.safety_position = 0
-        try:
-            if self.position[1] >= self.best_hole[0][1] + 0.001:
-                self.states.remove(cf.FORWARD_TRANSLATION_AVOIDING)
-                self.velocity = cf.NOMINAL_VELOCITY
-                del self.best_hole
-        except AttributeError:
-            pass
-        except ValueError:
-            pass
+        # try:
+        #     if self.position[1] >= self.best_hole[0][1] + 0.001:
+        #         self.states.remove(cf.FORWARD_TRANSLATION_AVOIDING)
+        #         self.velocity = cf.NOMINAL_VELOCITY
+        #         del self.best_hole
+        # except AttributeError:
+        #     pass
+        # except ValueError:
+        #     pass
+
+    def reached_avoiding_point_do(self):
+        if self.avoiding_position != 0 and self.position[1] >= self.avoiding_position[1] + 0.001:
+            self.states.remove(cf.FORWARD_TRANSLATION_AVOIDING)
+            self.states.append(cf.FORWARD_TRANSLATION)
+            self.velocity = cf.NOMINAL_VELOCITY
+            self.titter = cf.NOMINAL_TITTER
+            self.avoiding_position = 0
 
     def transmit_distress(self, distress_data: dict) -> dict:
         '''
@@ -143,8 +155,8 @@ class Agent:
         return self.best_hole
 
     def no_obstacle_hole_appraoch(self):
-        if cf.FORWARD_TRANSLATION_AVOIDING not in self.states:
-            obstacles = []
+        if cf.FORWARD_TRANSLATION_AVOIDING not in self.states and cf.DODGING_OBSTACLE not in self.states:
+            obstacles = self.get_obstacles()
             for obstacle in self.terrain.obstacles:
                 if obstacle[1] - self.position[1] <= cf.OBSTACLE_PANIC_ACT_DISTANCE and self.titter == 90:
                     obstacles.append(obstacle)
@@ -166,23 +178,32 @@ class Agent:
                     time_to_arrive_date = datetime.now() + timedelta(seconds=time_to_arrive)
                     self.terrain.holes_time_to_arrive[best_hole[0]] = time_to_arrive_date.timestamp()
                     y_velocity = sy / time_to_arrive # the same as nominal velocity
+                    self.velocity = y_velocity
                 else:
                     if datetime.now() - datetime.fromtimestamp(self.terrain.holes_time_to_arrive[best_hole[0]]) > timedelta(seconds = sa / cf.NOMINAL_VELOCITY): # if the previous agent has arrived
                         time_to_arrive = sy / cf.NOMINAL_VELOCITY
                         time_to_arrive_date = datetime.now() + timedelta(seconds=time_to_arrive)
                         self.terrain.holes_time_to_arrive[best_hole[0]] = time_to_arrive_date.timestamp()
                         y_velocity = sy / time_to_arrive # the same as nominal velocity
-                    else:
-                        time_to_arrive = (sy + 2.5 * sa) / cf.NOMINAL_VELOCITY
-                        time_to_arrive_date = datetime.now() + timedelta(seconds=time_to_arrive)
-                        self.terrain.holes_time_to_arrive[best_hole[0]] = time_to_arrive_date.timestamp()
-                        y_velocity =  sy / time_to_arrive
-                        # y_velocity = 0.6 * cf.NOMINAL_VELOCITY
-                self.states.append(cf.FORWARD_TRANSLATION_AVOIDING)
-                self.velocity = y_velocity
+                        self.velocity = y_velocity
+                    # else:
+                    #     time_to_arrive = (sy + 2.5 * sa) / cf.NOMINAL_VELOCITY
+                    #     time_to_arrive_date = datetime.now() + timedelta(seconds=time_to_arrive)
+                    #     self.terrain.holes_time_to_arrive[best_hole[0]] = time_to_arrive_date.timestamp()
+                    #     y_velocity =  sy / time_to_arrive
+                    #     y_velocity = 0.6 * cf.NOMINAL_VELOCITY
 
-
-        
+                        # c = self.position[1] - np.tan(self.titter / (180 / np.pi)) * self.position[0]
+                        # yn = lambda crossing_agent_position_x: np.tan(self.titter / (180 / np.pi)) * crossing_agent_position_x + c
+                        # tsa = lambda velocity_y_component: 2 * (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE) / velocity_y_component
+                        # # tn = lambda crossing_agent: (yn(crossing_agent.position[0]) - crossing_agent.position[1]) / np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity)
+                        # Tn = lambda crossing_agent_position_x: np.abs(crossing_agent_position_x - self.position[0]) /  np.abs(np.cos(self.titter / (180 / np.pi)) * self.velocity)
+                        # y_velocity = (yn(self.position[0]) - self.position[1]) / time_to_arrive
+                        # self.avoiding_position = self.position[0], yn(self.position[0])
+                        # self.states.append(cf.FORWARD_TRANSLATION_AVOIDING)
+                        # print(y_velocity)
+                # self.states.append(cf.FORWARD_TRANSLATION_AVOIDING)
+                # self.velocity = y_velocity
 
     def calculate_safety_position(self, best_hole: tuple) -> tuple:
         '''
@@ -206,9 +227,41 @@ class Agent:
         pass
 
 
-    def get_in_safety_point_path_agents(self) -> list:
+    def slow_down_in_safety_point_path(self, distressed_agent) -> list:
         '''
-        Returns a list of all the agents that are on a collision course to the distress safety point. Starting from the closest
+        Returns a list of all the agents that are on a collision course to the dodging agent. Starting from the closest
+        '''
+        c = self.position[1] - np.tan(self.titter / (180 / np.pi)) * self.position[0]
+        yn = lambda crossing_agent_position_x: np.tan(self.titter / (180 / np.pi)) * crossing_agent_position_x + c
+        tsa = lambda velocity_y_component: 2 * (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE) / velocity_y_component
+        tn = lambda crossing_agent: (yn(crossing_agent.position[0]) - crossing_agent.position[1]) / np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity)
+        Tn = lambda crossing_agent_position_x: np.abs(crossing_agent_position_x - self.position[0]) /  np.abs(np.cos(self.titter / (180 / np.pi)) * self.velocity)
+
+        # slow_down_agents = []
+        # for agent in self.terrain.agents:
+        #     if agent == self:
+        #         continue
+        #     tnC = tn(agent)
+        #     tsaC = tsa(np.abs(np.sin(agent.titter / (180 / np.pi)) * agent.velocity))
+        #     TnC = Tn(agent.position[0])
+        #     if np.tan(self.titter / (180 / np.pi)) * (agent.position[0] - self.position[0]) < 0 and tnC + tsaC < TnC: # if the agent is crossing the dodging agents path and it will reach the path of the dodging agent before it passes
+        #         slow_down_agents.append(agent)
+        # for agent in slow_down_agents:
+        #     agent.velocity = (yn(agent.position[0]) - agent.position[1]) / (Tn(agent.position[0]) + tsa(np.abs(np.sin(agent.titter / (180 / np.pi)) * agent.velocity)))
+        #     agent.avoiding_position = agent.position[0], yn(agent.position[0])
+        #     agent.states.append(cf.FORWARD_TRANSLATION_AVOIDING)
+        
+        tnC = tn(self)
+        tsaC = tsa(np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity))
+        TnC = Tn(self.position[0])
+        if np.tan(distressed_agent.titter / (180 / np.pi)) * (self.position[0] - distressed_agent.position[0]) < 0 and tnC + tsaC < TnC: # if the self is crossing the dodging agents path and it will reach the path of the dodging self before it passes
+            self.velocity = (yn(self.position[0]) - self.position[1]) / (Tn(self.position[0]) + tsa(np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity)))
+            self.avoiding_position = self.position[0], yn(self.position[0])
+            self.states.append(cf.FORWARD_TRANSLATION_AVOIDING)
+        
+    def retard_in_safety_point_path_agents(self):
+        '''
+        Slow down agents in collision course with dodging agent
         '''
         pass
             

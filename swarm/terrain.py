@@ -73,6 +73,9 @@ class Terrain:
         '''
         Receive distress signal from agent and transmit to concerned agents
         '''
-        pass
+        for agent in self.agents:
+            if agent == self.agents[sender_id]:
+                continue
+            agent.slow_down_in_safety_point_path(self.agents[sender_id])
 
 
