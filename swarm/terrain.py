@@ -16,7 +16,7 @@ class Terrain:
         self.height = height
         # self.agents = [Agent(i, self, ) for i in range(5)]
         safety_height = cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE
-        self.agents = [Agent(0, self, 5, safety_height), Agent(1, self, 8, 2 * safety_height), Agent(2, self, 11, 3 * safety_height), Agent(3, self, 14, safety_height), Agent(4, self, 19, 2 * safety_height)]
+        self.agents = [Agent(0, self, 5, safety_height), Agent(1, self, 8, 2 * safety_height), Agent(2, self, 11, 3 * safety_height), Agent(3, self, 14, safety_height), Agent(4, self, 19, 2 * safety_height), Agent(5, self, 17, 3.7 * safety_height)]
         self.obstacles = obstacles
         self.holes_time_to_arrive = {}
         self.target = { # Ellipse becomes a circle if width and height are the same
