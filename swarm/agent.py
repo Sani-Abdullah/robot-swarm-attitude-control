@@ -36,7 +36,7 @@ class Agent:
                 safety_position = self.calculate_safety_position(best_hole)
                 # if self.id == 5:
                 #     print('oooooooooooooooooooooo ', safety_position)
-                self.transmit_distress({})
+                # self.transmit_distress({'type': cf.DISTRESS_SLOW_DOWN_IN_PATH_OBSTACLES})
                 # self.slow_down_in_safety_point_path(self.id)
                 velocity_x = np.random.random() * cf.MAXIMUM_VELOCITY
                 velocity_x, velocity_y = self.obstacle_dodging_velocity(safety_position, best_hole[0])
@@ -244,11 +244,11 @@ class Agent:
         Returns a list of all the agents that are on a collision course to the dodging agent. Starting from the closest
         '''
         if cf.HALTING not in self.states and cf.APPROACHING_TARGET not in self.states and cf.APPROACHED_TARGET not in self.states:
-            c = self.position[1] - np.tan(self.titter / (180 / np.pi)) * self.position[0]
-            yn = lambda crossing_agent_position_x: np.tan(self.titter / (180 / np.pi)) * crossing_agent_position_x + c
+            c = distressed_agent.position[1] - np.tan(distressed_agent.titter / (180 / np.pi)) * distressed_agent.position[0]
+            yn = lambda crossing_agent_position_x: np.tan(distressed_agent.titter / (180 / np.pi)) * crossing_agent_position_x + c
             tsa = lambda velocity_y_component: 2 * (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE) / velocity_y_component
             tn = lambda crossing_agent: (yn(crossing_agent.position[0]) - crossing_agent.position[1]) / np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity)
-            Tn = lambda crossing_agent_position_x: np.abs(crossing_agent_position_x - self.position[0]) /  np.abs(np.cos(self.titter / (180 / np.pi)) * self.velocity)
+            Tn = lambda distressed_agent: np.abs(distressed_agent.position[0] - self.position[0]) /  np.abs(np.cos(self.titter / (180 / np.pi)) * distressed_agent.velocity)
 
             # slow_down_agents = []
             # for agent in self.terrain.agents:
@@ -266,9 +266,10 @@ class Agent:
             
             tnC = tn(self)
             tsaC = tsa(np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity))
-            TnC = Tn(self.position[0])
+            TnC = Tn(distressed_agent)
             if np.tan(distressed_agent.titter / (180 / np.pi)) * (self.position[0] - distressed_agent.position[0]) < 0 and tnC + tsaC < TnC: # if the self is crossing the dodging agents path and it will reach the path of the dodging self before it passes
-                self.velocity = (yn(self.position[0]) - self.position[1]) / (Tn(self.position[0]) + tsa(np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity)))
+                self.velocity = (yn(self.position[0]) - self.position[1]) / (TnC + tsaC)
+                print('vel: ', self.velocity)
                 self.avoiding_position = self.position[0], yn(self.position[0])
                 self.states.append(cf.FORWARD_TRANSLATION_AVOIDING)
         
