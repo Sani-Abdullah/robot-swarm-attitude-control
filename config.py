@@ -4,6 +4,8 @@ DODGING_OBSTACLE = 2
 HALTING = 3
 SEARCHING_FOR_HOLE = 4
 FORWARD_TRANSLATION_AVOIDING = 5
+APPROACHING_TARGET = 6
+APPROACHED_TARGET = 7
 
 # common velocity for all agents
 NOMINAL_TITTER = 90 # degrees
@@ -26,7 +28,7 @@ AGENT_RADIUS = 1.3 # metres
 OBSTACLE_ALLOWANCE = 0.1 # metres
 
 # translaion
-TRANSLATION_INTERVAL = 1 # seconds
+TRANSLATION_INTERVAL = 1.0 # seconds
 
 # sensing
 OBSTACLE_PANIC_ACT_DISTANCE = AGENT_RADIUS + OBSTACLE_ALLOWANCE + 7 # metres # distance between agent and obstacle that will trigger distress

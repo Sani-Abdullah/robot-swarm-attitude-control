@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from swarm.agent import Agent
-from matplotlib.patches import Rectangle, Ellipse
+from matplotlib.patches import Rectangle, Ellipse, Circle
 
 
 class Terrain:
@@ -19,6 +19,13 @@ class Terrain:
         self.agents = [Agent(0, self, 5, safety_height), Agent(1, self, 8, 2 * safety_height), Agent(2, self, 11, 3 * safety_height), Agent(3, self, 14, safety_height), Agent(4, self, 19, 2 * safety_height)]
         self.obstacles = obstacles
         self.holes_time_to_arrive = {}
+        self.target = { # Ellipse becomes a circle if width and height are the same
+            'center': (8, 45),
+            'width': 3,
+            'height': 3,
+            'radius': 3,
+        }
+        self.target_approach_slots = [False for i in range(len(self.agents))]
 
         # create and configure plot
         self.plot_figure = plt.figure(facecolor='white', figsize=(2, 2), dpi=300, frameon=True)
@@ -35,9 +42,11 @@ class Terrain:
             x, y, dx, dy = obstacle
             rectangle = Rectangle((x, y), dx, dy, fc='#764c29', ec='black', lw=0.484)
             self.plot_axis.add_patch(rectangle)
-        target_ellipse = Ellipse((8, 45), 5, 3, fc='#a7a9ac')
+        target_ellipse = Ellipse(self.target['center'], self.target['width'], self.target['height'], fc='#a7a9ac', lw=0)
         self.plot_axis.add_patch(target_ellipse)
-        self.plot_axis.annotate('Target', (8, 45), color='w', weight='light', fontsize=4.5, ha='center', va='center')
+        # target_circle = Circle(self.target['center'], self.target['radius'], fc='#a7a9ac')
+        # self.plot_axis.add_patch(target_circle)
+        self.plot_axis.annotate('Target', self.target['center'], color='w', weight='light', fontsize=4.5, ha='center', va='center')
 
     def plot_terrain(self, animate_index):
         '''
@@ -66,7 +75,7 @@ class Terrain:
     def animate(self):
         if not os.path.exists('output'):
             os.makedirs('output')
-        anim = animation.FuncAnimation(self.plot_figure, self.plot_terrain, frames=200, interval=cf.TRANSLATION_INTERVAL * 1000, blit=True)
+        anim = animation.FuncAnimation(self.plot_figure, self.plot_terrain, frames=400, interval=cf.TRANSLATION_INTERVAL * 1000, blit=True)
         anim.save('output/swarm-control.mp4', writer = 'ffmpeg', dpi=300, fps = 40)
 
     def receive_distress(self, sender_id: int, distress_data: dict):

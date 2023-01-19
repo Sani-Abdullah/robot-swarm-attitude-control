@@ -2,6 +2,7 @@ import numpy as np
 import config as cf
 # from terrain import Terrain
 from util.exceptions import VelocityDirectionError
+from util.decorators import halting_disabled
 from datetime import datetime, timedelta
 
 class Agent:
@@ -18,6 +19,7 @@ class Agent:
         # np.random.randint(2, terrain.width - 2), np.random.randint(2, 5)
         self.safety_position = 0
         self.avoiding_position = 0
+        self.approach_target_position = 0
 
         self.states = [cf.FORWARD_TRANSLATION]
 
@@ -25,8 +27,9 @@ class Agent:
         '''
         Scan the terrain for obstacles and wait for the swarm to decide on a directive
         '''
+        self.approach_target()
         obstacles = self.get_obstacles()
-        if obstacles and cf.DODGING_OBSTACLE not in self.states:
+        if obstacles and cf.DODGING_OBSTACLE not in self.states and cf.APPROACHING_TARGET not in self.states and cf.APPROACHED_TARGET not in self.states:
             holes = self.get_holes(obstacles)
             self.transmit_distress({})
             if holes:
@@ -47,16 +50,20 @@ class Agent:
             self.no_obstacle_hole_appraoch()
             pass
 
-    def translate(self):
+    def translate(self, translation_interval = cf.TRANSLATION_INTERVAL):
         '''
         Agent translates at current velocity facing titter
         '''
+        if cf.HALTING in self.states:
+            self.velocity = 0
+            return
+        self.reached_target_do()
         self.reached_safety_do()
         self.reached_avoiding_point_do()
         velocity_x_component = self.velocity * np.cos(self.titter / (180 / np.pi))
         velocity_y_component = self.velocity * np.sin(self.titter / (180 / np.pi))
         # recall s = vt
-        self.position = self.position[0] + velocity_x_component * cf.TRANSLATION_INTERVAL, self.position[1] + velocity_y_component * cf.TRANSLATION_INTERVAL
+        self.position = self.position[0] + velocity_x_component * translation_interval, self.position[1] + velocity_y_component * translation_interval
 
     def directive_complier(self, directive: dict):
         '''
@@ -135,7 +142,8 @@ class Agent:
             hole_start_position = sorted_obstacles[obstacle_index][0] + sorted_obstacles[obstacle_index][2], sorted_obstacles[obstacle_index][1]
             hole_width = sorted_obstacles[obstacle_index + 1][0] - hole_start_position[0]
             hole_distance_from_self = self.position[0] - (hole_start_position[0] + hole_width / 2)
-            holes.append((hole_start_position, hole_width, hole_distance_from_self))
+            if sorted_obstacles[obstacle_index][0] - sorted_obstacles[obstacle_index + 1][0]:
+                holes.append((hole_start_position, hole_width, hole_distance_from_self))
         if sorted_obstacles[-1][0] + sorted_obstacles[-1][2] < self.terrain.width: # add rightmost hole if it exists
             hole_start_position = sorted_obstacles[-1][0] + sorted_obstacles[-1][2], sorted_obstacles[-1][1]
             hole_width = self.terrain.width - hole_start_position[0]
@@ -227,10 +235,12 @@ class Agent:
         pass
 
 
+    # @halting_disabled()
     def slow_down_in_safety_point_path(self, distressed_agent) -> list:
         '''
         Returns a list of all the agents that are on a collision course to the dodging agent. Starting from the closest
         '''
+        # if cf.HALTING in self.states:
         c = self.position[1] - np.tan(self.titter / (180 / np.pi)) * self.position[0]
         yn = lambda crossing_agent_position_x: np.tan(self.titter / (180 / np.pi)) * crossing_agent_position_x + c
         tsa = lambda velocity_y_component: 2 * (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE) / velocity_y_component
@@ -305,6 +315,60 @@ class Agent:
 
 
         return x_velocity, y_velocity
+
+    def approach_target(self):
+        obstacles = [obstacle for obstacle in self.terrain.obstacles]
+        sorted_obstacles = sorted(obstacles, key=lambda x: x[1], reverse=True)
+        last_obstacle_top_y = sorted_obstacles[0][1] + sorted_obstacles[0][-1]
+        if self.position[1] > last_obstacle_top_y and cf.APPROACHING_TARGET not in self.states and cf.APPROACHED_TARGET not in self.states and cf.FORWARD_TRANSLATION in self.states:
+            self.states.append(cf.APPROACHING_TARGET)
+            # dydx = (self.terrain.target['center'][1] - self.position[1]) / (self.terrain.target['center'][0] - self.position[0])
+            # titter = np.arctan(dydx) * 180 / np.pi
+            # self.titter = np.abs(titter) if dydx > 0 else 180 + titter
+
+            r = self.terrain.target['width'] # + cf.SAFETY_RADIUS + cf.OBSTACLE_ALLOWANCE # agent target convergence radius
+            if self.terrain.target['center'][0] - self.position[0] > 0: # agent is on the left of target
+                titter_i = lambda i: 180 - i * 180 / len(self.terrain.agents) # the angle of approach from the perspective of the target center
+                approach_position_x = lambda i: self.terrain.target['center'][0] + r * np.cos(titter_i(i) / (180 / np.pi))
+                approach_position_y = lambda i: self.terrain.target['center'][1] - r * np.sin(titter_i(i) / (180 / np.pi))
+                for slot_index in range(len(self.terrain.target_approach_slots)):
+                    if not self.terrain.target_approach_slots[slot_index]:
+                        self.terrain.target_approach_slots[slot_index] = True
+                        self.approach_target_position = approach_position_x(slot_index), approach_position_y(slot_index)
+                        dy = self.approach_target_position[1] - self.position[1] 
+                        dx = self.approach_target_position[0] - self.position[0] 
+                        self.titter = np.arctan(dy/dx) * 180 / np.pi
+                        print('left: ', self.titter)
+                        print('left: ', self.terrain.target_approach_slots)
+                        break
+            else: # agent is on the right of target
+                titter_i = lambda i: i * 180 / len(self.terrain.agents) # the angle of approach from the perspective of the target center
+                approach_position_x = lambda i: self.terrain.target['center'][0] + r * np.cos(titter_i(i) / (180 / np.pi))
+                approach_position_y = lambda i: self.terrain.target['center'][1] - r * np.sin(titter_i(i) / (180 / np.pi))
+                for slot_index in range(len(self.terrain.target_approach_slots)):
+                    true_index = (slot_index + 1) * -1
+                    if not self.terrain.target_approach_slots[true_index]:
+                        self.terrain.target_approach_slots[true_index] = True
+                        self.approach_target_position = approach_position_x(slot_index), approach_position_y(slot_index)
+                        dy = self.approach_target_position[1] - self.position[1] 
+                        dx = self.approach_target_position[0] - self.position[0] 
+                        self.titter = 180 + np.arctan(dy/dx) * 180 / np.pi
+                        print('right: ', self.titter)
+                        print('right: ', self.terrain.target_approach_slots)
+                        break
+    
+    def reached_target_do(self):
+        if cf.APPROACHING_TARGET in self.states:
+            # dy = self.approach_target_position[1] - self.position[1] 
+            # dx = self.approach_target_position[0] - self.position[0] 
+            # distance = np.sqrt(np.square(dx) + np.square(dy))
+            if self.approach_target_position[1] - self.position[1] < 0.001:
+                # self.translate(translation_interval=np.random.randint(0, 2) + np.random.random())
+                self.states.remove(cf.APPROACHING_TARGET)
+                self.states.append(cf.APPROACHED_TARGET)
+                self.states.append(cf.HALTING)
+                print('stopped')
+
 
 
 
