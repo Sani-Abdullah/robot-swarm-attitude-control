@@ -24,12 +24,12 @@ SEARCH_DIRECTION_RIGHT = 2000
 
 
 # agent safety data
-SAFETY_RADIUS = 0.5 # metres
-AGENT_RADIUS = 1.3 # metres
-OBSTACLE_ALLOWANCE = 0.1 # metres
+SAFETY_RADIUS = 0.8 # metres
+AGENT_RADIUS = 0.5 # metres
+OBSTACLE_ALLOWANCE = 0.6 # metres
 
 # translaion
 TRANSLATION_INTERVAL = 1.0 # seconds
 
 # sensing
-OBSTACLE_PANIC_ACT_DISTANCE = AGENT_RADIUS + OBSTACLE_ALLOWANCE + 3 # metres # distance between agent and obstacle that will trigger distress
+OBSTACLE_PANIC_ACT_DISTANCE = AGENT_RADIUS + OBSTACLE_ALLOWANCE + 3.5 # metres # distance between agent and obstacle that will trigger distress

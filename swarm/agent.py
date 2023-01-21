@@ -49,7 +49,7 @@ class Agent:
             else:
                 self.states.append(cf.HALTING)
         else:
-            self.no_obstacle_hole_appraoch()
+            # self.no_obstacle_hole_appraoch()
             pass
         self.retard_in_safety_point_path_agents()
 
@@ -107,7 +107,7 @@ class Agent:
             neighbours = self.get_neighbours()
             retarding_neighbours = [neighbour for neighbour in neighbours if neighbour in self.retarding_agents]
             for neighbour in retarding_neighbours:
-                if self.position[1] >= self.retarding_agents[neighbour][1] + 0.0001:
+                if self.position[1] >= self.retarding_agents[neighbour][1] + 0.0001 or cf.APPROACHED_TARGET in self.states:
                     del neighbour.retarding_agents[self]
                     del self.retarding_agents[neighbour]
                     self.states.remove(cf.FORWARD_TRANSLATION_AVOIDING)
@@ -297,7 +297,7 @@ class Agent:
         if cf.HALTING not in self.states and cf.APPROACHING_TARGET not in self.states and cf.APPROACHED_TARGET not in self.states:
             c = distressed_agent.position[1] - np.tan(distressed_agent.titter / (180 / np.pi)) * distressed_agent.position[0]
             yn = lambda crossing_agent_position_x: np.tan(distressed_agent.titter / (180 / np.pi)) * crossing_agent_position_x + c
-            tsa = lambda velocity_y_component: 2 * (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE) / velocity_y_component
+            tsa = lambda velocity_y_component: 2 * (cf.AGENT_RADIUS + cf.SAFETY_RADIUS) / velocity_y_component
             tn = lambda crossing_agent: (yn(crossing_agent.position[0]) - crossing_agent.position[1]) / np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity)
             Tn = lambda distressed_agent: np.abs(distressed_agent.position[0] - self.position[0]) /  np.abs(np.cos(self.titter / (180 / np.pi)) * distressed_agent.velocity)
 
@@ -336,11 +336,14 @@ class Agent:
 
         # try for singular matrix error
         
-        tsa = lambda velocity: (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE) / (velocity + 0.000001)
+        tsa = lambda velocity: (cf.AGENT_RADIUS + cf.SAFETY_RADIUS) / (velocity + 0.000001)
 
         cT = self.position[1] - np.tan(self.titter / (180 / np.pi)) * self.position[0]
         mT = np.tan(self.titter / (180 / np.pi))
         Tsa = tsa(np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity))
+        euclidean_distance = lambda a, b: np.sqrt(np.square(a[0] - b[0]) + np.square(a[1] - b[1]))
+        tn_max = float('-inf')
+        Tn_max = float('-inf')
 
         neighbours = self.get_neighbours()
         for agent in neighbours:
@@ -356,28 +359,44 @@ class Agent:
                 tn = np.abs(y - agent.position[1]) / np.abs(np.sin(agent.titter / (180 / np.pi)) * (agent.velocity + 0.000001))
                 ttsa = tsa(np.abs(np.sin(self.titter / (180 / np.pi)) * agent.velocity)) # using sin since its y we used for tn
                 t_clear = tn + ttsa
-                dn = np.sqrt(np.square(agent.position[0] - x) + np.square(agent.position[1] - y))
+                dn = euclidean_distance(agent.position, (x, y))
 
                 Tn = np.abs(y - self.position[1]) / np.abs(np.sin(self.titter / (180 / np.pi)) * (self.velocity + 0.00001))
                 T_arrive = Tn - Tsa
-                Dn = np.sqrt(np.square(self.position[0] - x) + np.square(self.position[1] - y))
+                Dn = euclidean_distance(self.position, (x, y))
 
-                if y > agent.position[1] and y > self.position[1] and np.abs(T_arrive - t_clear) < 2 * np.max([Tsa, ttsa]) and agent not in self.retarding_agents and self not in agent.retarding_agents:
-                    if Dn > dn:
-                        print('x y', x, y)
-                        print('in_path: ', agent.position[0], agent.position[1])
-                        print('distressed: ', self.position[0], self.position[1])
-                        agent.previous_velocities.append(agent.velocity)
-                        # new_y_velocity = np.abs(np.sin(agent.titter / (180 / np.pi)) * agent.velocity) + np.abs(y - agent.position[1]) / (Tn + Tsa)
-                        new_y_velocity = 0.8 * np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity)
-                        agent.velocity = np.sqrt(np.square(np.abs(np.cos(agent.titter / (180 / np.pi)) * agent.velocity)) + np.square(new_y_velocity))
-                        # agent.velocity = 0.6 * np.sin(self.titter / (180 / np.pi)) * self.velocity
-                        # self.velocity = 0.5 * self.velocity
-                        # self.retarding_agents.append(agent)
-                    else:
-                        self.previous_velocities.append(self.velocity)
-                        new_y_velocity = np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity) + np.abs(y - self.position[1]) / (tn + ttsa)
-                        self.velocity = np.sqrt(np.square(np.abs(np.cos(self.titter / (180 / np.pi)) * self.velocity)) + np.square(new_y_velocity))
+                min_titter = np.min([agent.titter, self.titter])
+                max_titter = np.max([agent.titter, self.titter])
+                safe_distance_after_intersection = cf.AGENT_RADIUS / np.tan(((max_titter - min_titter) /2) / (180 / np.pi))
+
+                agent_distance_from_intersection = euclidean_distance(agent.position, (x, y))
+                distressed_agent_distance_from_intersection = euclidean_distance(self.position, (x, y))
+
+                if y > agent.position[1] and y > self.position[1] and np.abs(T_arrive - t_clear) < 2 * np.max([Tsa, ttsa]) and (agent_distance_from_intersection > safe_distance_after_intersection or distressed_agent_distance_from_intersection > safe_distance_after_intersection) and agent not in self.retarding_agents and self not in agent.retarding_agents:
+                    self.terrain.plot_axis.plot(x, y, 'x', markersize= 2 * cf.AGENT_RADIUS, c='yellow')
+                    if len(self.terrain.plot_axis.lines) > 1:
+                        self.terrain.plot_axis.lines.pop(0)
+                        if Dn > dn:
+                            # if tn > tn_max:
+                            #    tn_max = tn
+                            self.previous_velocities.append(self.velocity)
+                            # new_y_velocity = np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity) + np.abs(y - self.position[1]) / (tn + ttsa)
+                            new_y_velocity = np.abs(y - self.position[1]) / (tn + 3 * ttsa)
+                            self.velocity = np.sqrt(np.square(np.abs(np.cos(self.titter / (180 / np.pi)) * self.velocity)) + np.square(new_y_velocity))
+                        else:
+                            # if Tn > Tn_max:
+                            #    Tn_max = Tn
+                            print('x y', x, y)
+                            print('in_path: ', agent.position[0], agent.position[1])
+                            print('distressed: ', self.position[0], self.position[1])
+                            agent.previous_velocities.append(agent.velocity)
+                            # new_y_velocity = np.abs(np.sin(agent.titter / (180 / np.pi)) * agent.velocity) + np.abs(y - agent.position[1]) / (Tn + Tsa)
+                            # new_y_velocity = 0.8 * np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity)
+                            new_y_velocity = np.abs(y - agent.position[1]) / (Tn + 3 * Tsa)
+                            agent.velocity = np.sqrt(np.square(np.abs(np.cos(agent.titter / (180 / np.pi)) * agent.velocity)) + np.square(new_y_velocity))
+                            # agent.velocity = 0.6 * np.sin(self.titter / (180 / np.pi)) * self.velocity
+                            # self.velocity = 0.5 * self.velocity
+                            # self.retarding_agents.append(agent)
 
                     
                     collide_position = (x, y)
@@ -412,7 +431,7 @@ class Agent:
         Calculate the velocity to dodge obstacle based on previous time schedule submitted to self.terrain.holes_time_to_arrive
         '''
         sy = destination[1] - self.position[1]
-        sa = 3 * (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE) # agent safety distance
+        sa = 3 * (cf.AGENT_RADIUS + cf.SAFETY_RADIUS) # agent safety distance
         if hole_start_position not in self.terrain.holes_time_to_arrive: 
             time_to_arrive = sy / cf.NOMINAL_VELOCITY
             time_to_arrive_date = datetime.now() + timedelta(seconds=time_to_arrive)
@@ -442,7 +461,7 @@ class Agent:
         obstacles = [obstacle for obstacle in self.terrain.obstacles]
         sorted_obstacles = sorted(obstacles, key=lambda x: x[1], reverse=True)
         last_obstacle_top_y = sorted_obstacles[0][1] + sorted_obstacles[0][-1]
-        if self.position[1] > last_obstacle_top_y and cf.APPROACHING_TARGET not in self.states and cf.APPROACHED_TARGET not in self.states and cf.FORWARD_TRANSLATION in self.states:
+        if self.position[1] > last_obstacle_top_y and cf.APPROACHING_TARGET not in self.states and cf.APPROACHED_TARGET not in self.states:
             self.states.append(cf.APPROACHING_TARGET)
             # dydx = (self.terrain.target['center'][1] - self.position[1]) / (self.terrain.target['center'][0] - self.position[0])
             # titter = np.arctan(dydx) * 180 / np.pi
@@ -470,6 +489,7 @@ class Agent:
                         dx = self.approach_target_position[0] - self.position[0] 
                         self.velocity = cf.NOMINAL_VELOCITY
                         self.titter = np.arctan(dy/dx) * 180 / np.pi
+                        print('titter',self.titter)
                         print('left: ', self.titter)
                         print('left: ', self.terrain.target_approach_slots)
                         break
@@ -495,6 +515,7 @@ class Agent:
                         dx = self.approach_target_position[0] - self.position[0] 
                         self.velocity = cf.NOMINAL_VELOCITY
                         self.titter = 180 + np.arctan(dy/dx) * 180 / np.pi
+                        print('titter',self.titter)
                         print('right: ', self.titter)
                         print('right: ', self.terrain.target_approach_slots)
                         break
