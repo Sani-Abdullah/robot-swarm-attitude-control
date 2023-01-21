@@ -107,7 +107,7 @@ class Agent:
             neighbours = self.get_neighbours()
             retarding_neighbours = [neighbour for neighbour in neighbours if neighbour in self.retarding_agents]
             for neighbour in retarding_neighbours:
-                if self.position[1] >= self.retarding_agents[neighbour][1] + 0.0001 or cf.APPROACHED_TARGET in self.states:
+                if self.position[1] >= self.retarding_agents[neighbour][1] + 0.0001 or cf.APPROACHED_TARGET in self.states or cf.APPROACHING_TARGET in self.states:
                     del neighbour.retarding_agents[self]
                     del self.retarding_agents[neighbour]
                     self.states.remove(cf.FORWARD_TRANSLATION_AVOIDING)

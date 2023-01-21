@@ -9,7 +9,7 @@ APPROACHED_TARGET = 7
 
 # common velocity for all agents
 NOMINAL_TITTER = 90 # degrees
-NOMINAL_VELOCITY = 0.2 # m/s
+NOMINAL_VELOCITY = 0.16 # m/s
 MAXIMUM_VELOCITY = 0.35 # m/s
 
 # distress types
