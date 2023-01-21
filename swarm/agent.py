@@ -20,6 +20,8 @@ class Agent:
         self.safety_position = 0
         self.avoiding_position = 0
         self.approach_target_position = 0
+        self.retarding_agents = {}
+        self.previous_velocities = []
 
         self.states = [cf.FORWARD_TRANSLATION]
 
@@ -49,6 +51,7 @@ class Agent:
         else:
             self.no_obstacle_hole_appraoch()
             pass
+        self.retard_in_safety_point_path_agents()
 
     def translate(self, translation_interval = cf.TRANSLATION_INTERVAL):
         '''
@@ -93,12 +96,60 @@ class Agent:
         #     pass
 
     def reached_avoiding_point_do(self):
-        if self.avoiding_position != 0 and self.position[1] >= self.avoiding_position[1] + 0.001:
-            self.states.remove(cf.FORWARD_TRANSLATION_AVOIDING)
-            self.states.append(cf.FORWARD_TRANSLATION)
-            self.velocity = cf.NOMINAL_VELOCITY
-            self.titter = cf.NOMINAL_TITTER
-            self.avoiding_position = 0
+        # if self.avoiding_position != 0 and self.position[1] >= self.avoiding_position[1] + 0.001:
+        #     self.states.remove(cf.FORWARD_TRANSLATION_AVOIDING)
+        #     self.states.append(cf.FORWARD_TRANSLATION)
+        #     self.velocity = cf.NOMINAL_VELOCITY
+        #     self.titter = cf.NOMINAL_TITTER
+        #     self.avoiding_position = 0
+
+        if self.retarding_agents.__len__() != 0:
+            neighbours = self.get_neighbours()
+            retarding_neighbours = [neighbour for neighbour in neighbours if neighbour in self.retarding_agents]
+            for neighbour in retarding_neighbours:
+                if self.position[1] >= self.retarding_agents[neighbour][1] + 0.0001:
+                    del neighbour.retarding_agents[self]
+                    del self.retarding_agents[neighbour]
+                    self.states.remove(cf.FORWARD_TRANSLATION_AVOIDING)
+                    neighbour.states.remove(cf.FORWARD_TRANSLATION_AVOIDING)
+                    if self.previous_velocities:
+                        self.velocity = self.previous_velocities[-1]
+                        self.previous_velocities.pop()
+                    else:
+                        self.velocity = cf.NOMINAL_VELOCITY
+                    if neighbour.previous_velocities:
+                        neighbour.velocity = neighbour.previous_velocities[-1]
+                        neighbour.previous_velocities.pop()
+                    else:
+                        neighbour.velocity = cf.NOMINAL_VELOCITY
+
+                    if cf.FORWARD_TRANSLATION_AVOIDING not in self.states:
+                        self.states.append(cf.FORWARD_TRANSLATION)
+                    if cf.FORWARD_TRANSLATION_AVOIDING not in neighbour.states:
+                        neighbour.states.append(cf.FORWARD_TRANSLATION)
+                
+    def reached_target_do(self):
+        '''
+        Halt when the agent arrives target
+        '''
+        if cf.APPROACHING_TARGET in self.states:
+            # dy = self.approach_target_position[1] - self.position[1] 
+            # dx = self.approach_target_position[0] - self.position[0] 
+            # distance = np.sqrt(np.square(dx) + np.square(dy))
+            if self.approach_target_position[1] - self.position[1] < 0.001:
+                # self.translate(translation_interval=np.random.randint(0, 2) + np.random.random())
+                self.states.remove(cf.APPROACHING_TARGET)
+                self.states.append(cf.APPROACHED_TARGET)
+                self.states.append(cf.HALTING)
+                print('stopped')
+    
+    def get_neighbours(self):
+        neighbours = []
+        for agent in self.terrain.agents:
+            if agent != self:
+                neighbours.append(agent)
+        return neighbours
+
 
     def transmit_distress(self, distress_data: dict) -> dict:
         '''
@@ -277,13 +328,75 @@ class Agent:
         '''
         Slow down agents in collision course with dodging agent
         '''
-        pass
-            
+        # T_arrive = Tn - Tsa
+        # t_clear = tn + tsa
+        # np.abs(T_arrive - t_clear) < 2 * Tsa -> then there will be collsion
+
+        # y > agent_y and y > self_y then collision course (combine with above)
+
+        # try for singular matrix error
+        
+        tsa = lambda velocity: (cf.AGENT_RADIUS + cf.OBSTACLE_ALLOWANCE) / (velocity + 0.000001)
+
+        cT = self.position[1] - np.tan(self.titter / (180 / np.pi)) * self.position[0]
+        mT = np.tan(self.titter / (180 / np.pi))
+        Tsa = tsa(np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity))
+
+        neighbours = self.get_neighbours()
+        for agent in neighbours:
+            if agent.titter != self.titter:
+                ct = agent.position[1] - np.tan(agent.titter / (180 / np.pi)) * agent.position[0]
+                mt = np.tan(agent.titter / (180 / np.pi))
+
+                A = np.array([[mT, -1], [mt, -1]])
+                C = np.array([-cT, -ct])
+                x, y = np.linalg.solve(A, C)
+
+            # try:
+                tn = np.abs(y - agent.position[1]) / np.abs(np.sin(agent.titter / (180 / np.pi)) * (agent.velocity + 0.000001))
+                ttsa = tsa(np.abs(np.sin(self.titter / (180 / np.pi)) * agent.velocity)) # using sin since its y we used for tn
+                t_clear = tn + ttsa
+                dn = np.sqrt(np.square(agent.position[0] - x) + np.square(agent.position[1] - y))
+
+                Tn = np.abs(y - self.position[1]) / np.abs(np.sin(self.titter / (180 / np.pi)) * (self.velocity + 0.00001))
+                T_arrive = Tn - Tsa
+                Dn = np.sqrt(np.square(self.position[0] - x) + np.square(self.position[1] - y))
+
+                if y > agent.position[1] and y > self.position[1] and np.abs(T_arrive - t_clear) < 2 * np.max([Tsa, ttsa]) and agent not in self.retarding_agents and self not in agent.retarding_agents:
+                    if Dn > dn:
+                        print('x y', x, y)
+                        print('in_path: ', agent.position[0], agent.position[1])
+                        print('distressed: ', self.position[0], self.position[1])
+                        agent.previous_velocities.append(agent.velocity)
+                        # new_y_velocity = np.abs(np.sin(agent.titter / (180 / np.pi)) * agent.velocity) + np.abs(y - agent.position[1]) / (Tn + Tsa)
+                        new_y_velocity = 0.8 * np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity)
+                        agent.velocity = np.sqrt(np.square(np.abs(np.cos(agent.titter / (180 / np.pi)) * agent.velocity)) + np.square(new_y_velocity))
+                        # agent.velocity = 0.6 * np.sin(self.titter / (180 / np.pi)) * self.velocity
+                        # self.velocity = 0.5 * self.velocity
+                        # self.retarding_agents.append(agent)
+                    else:
+                        self.previous_velocities.append(self.velocity)
+                        new_y_velocity = np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity) + np.abs(y - self.position[1]) / (tn + ttsa)
+                        self.velocity = np.sqrt(np.square(np.abs(np.cos(self.titter / (180 / np.pi)) * self.velocity)) + np.square(new_y_velocity))
+
+                    
+                    collide_position = (x, y)
+                    # self.avoiding_positions.append(collide_position)
+                    # agent.avoiding_positions.append(collide_position)
+                    self.states.append(cf.FORWARD_TRANSLATION_AVOIDING)
+                    agent.states.append(cf.FORWARD_TRANSLATION_AVOIDING)
+
+                    self.retarding_agents[agent] = collide_position
+                    agent.retarding_agents[self] = collide_position
+
+            # except:
+            #     pass
+    
     def position_request(self) -> dict:
-        '''
-        Get the positions of all agents in the terrain -> {node_id: position}
-        '''
-        pass
+            '''
+            Get the positions of all agents in the terrain -> {node_id: position}
+            '''
+            pass
 
     # def time_to_arrive_safety_point(self, destination: tuple, hole_queue_length: int = 0) -> float:
     #     '''
@@ -386,24 +499,6 @@ class Agent:
                         print('right: ', self.terrain.target_approach_slots)
                         break
     
-    def reached_target_do(self):
-        '''
-        Halt when the agent arrives target
-        '''
-        if cf.APPROACHING_TARGET in self.states:
-            # dy = self.approach_target_position[1] - self.position[1] 
-            # dx = self.approach_target_position[0] - self.position[0] 
-            # distance = np.sqrt(np.square(dx) + np.square(dy))
-            if self.approach_target_position[1] - self.position[1] < 0.001:
-                # self.translate(translation_interval=np.random.randint(0, 2) + np.random.random())
-                self.states.remove(cf.APPROACHING_TARGET)
-                self.states.append(cf.APPROACHED_TARGET)
-                self.states.append(cf.HALTING)
-                print('stopped')
-
-
-
-
     def time_to_clear(self, destination: tuple, direction: str = 'free') -> float:
         '''
         How long before the rear-tip of safety radius exits destination
