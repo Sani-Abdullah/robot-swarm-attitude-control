@@ -23,6 +23,8 @@ class Agent:
         self.retarding_agents = {}
         self.previous_velocities = []
 
+        self.dodged_agents = []
+
         self.states = [cf.FORWARD_TRANSLATION]
 
     def sense(self):
@@ -51,7 +53,8 @@ class Agent:
         else:
             # self.no_obstacle_hole_appraoch()
             pass
-        self.retard_in_safety_point_path_agents()
+        self.retard_in_safety_point_path_agents() # collsion detection and collision avoidance
+        self.dodge_too_close_agents()
 
     def translate(self, translation_interval = cf.TRANSLATION_INTERVAL):
         '''
@@ -359,30 +362,40 @@ class Agent:
                 tn = np.abs(y - agent.position[1]) / np.abs(np.sin(agent.titter / (180 / np.pi)) * (agent.velocity + 0.000001))
                 ttsa = tsa(np.abs(np.sin(self.titter / (180 / np.pi)) * agent.velocity)) # using sin since its y we used for tn
                 t_clear = tn + ttsa
-                dn = euclidean_distance(agent.position, (x, y))
 
                 Tn = np.abs(y - self.position[1]) / np.abs(np.sin(self.titter / (180 / np.pi)) * (self.velocity + 0.00001))
                 T_arrive = Tn - Tsa
-                Dn = euclidean_distance(self.position, (x, y))
 
                 min_titter = np.min([agent.titter, self.titter])
                 max_titter = np.max([agent.titter, self.titter])
                 safe_distance_after_intersection = cf.AGENT_RADIUS / np.tan(((max_titter - min_titter) /2) / (180 / np.pi))
 
-                agent_distance_from_intersection = euclidean_distance(agent.position, (x, y))
-                distressed_agent_distance_from_intersection = euclidean_distance(self.position, (x, y))
+                ysd = y + np.sin(agent.titter / (180 / np.pi)) * safe_distance_after_intersection
+                # dasd = ysd - agent.position[1]
+                xsd = y + np.cos(agent.titter / (180 / np.pi)) * safe_distance_after_intersection
+                YSD = y + np.sin(self.titter / (189 / np.pi)) * safe_distance_after_intersection
+                # dssd = YSD - self.position[1]
+                XSD = x + np.cos(self.titter / (189 / np.pi)) * safe_distance_after_intersection
 
-                if y > agent.position[1] and y > self.position[1] and np.abs(T_arrive - t_clear) < 2 * np.max([Tsa, ttsa]) and (agent_distance_from_intersection > safe_distance_after_intersection or distressed_agent_distance_from_intersection > safe_distance_after_intersection) and agent not in self.retarding_agents and self not in agent.retarding_agents:
-                    self.terrain.plot_axis.plot(x, y, 'x', markersize= 2 * cf.AGENT_RADIUS, c='yellow')
-                    if len(self.terrain.plot_axis.lines) > 1:
-                        self.terrain.plot_axis.lines.pop(0)
+                Dn = euclidean_distance(self.position, (x + XSD, y + YSD))
+                dn = euclidean_distance(agent.position, (x + xsd, y + ysd))
+
+                # agent_distance_from_intersection = euclidean_distance(agent.position, (x, y))
+                # distressed_agent_distance_from_intersection = euclidean_distance(self.position, (x, y))
+
+                if y > agent.position[1] and y > self.position[1] and np.abs(T_arrive - t_clear) < 2 * np.max([Tsa, ttsa]) and ((YSD - y > 0 and euclidean_distance(self.position, (XSD, YSD)) > safe_distance_after_intersection) or (ysd - y > 0 and euclidean_distance(agent.position, (xsd, ysd)) > safe_distance_after_intersection)) and agent not in self.retarding_agents and self not in agent.retarding_agents and cf.APPROACHING_TARGET not in self.states and cf.APPROACHING_TARGET not in agent.states:
+                    if euclidean_distance(agent.position, self.position) <= 5:    
+                        self.terrain.plot_axis.plot(x, y, 'x', markersize= 2 * cf.AGENT_RADIUS, c='yellow')
+                        if len(self.terrain.plot_axis.lines) > 1:
+                            self.terrain.plot_axis.lines.pop(0)
                         if Dn > dn:
                             # if tn > tn_max:
                             #    tn_max = tn
                             self.previous_velocities.append(self.velocity)
                             # new_y_velocity = np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity) + np.abs(y - self.position[1]) / (tn + ttsa)
-                            new_y_velocity = np.abs(y - self.position[1]) / (tn + 3 * ttsa)
-                            self.velocity = np.sqrt(np.square(np.abs(np.cos(self.titter / (180 / np.pi)) * self.velocity)) + np.square(new_y_velocity))
+                            new_y_velocity = np.abs(y - self.position[1]) / (tn + 5 * ttsa)
+                            self.velocity = new_y_velocity
+                            # self.velocity = np.sqrt(np.square(np.abs(np.cos(self.titter / (180 / np.pi)) * self.velocity)) + np.square(new_y_velocity))
                         else:
                             # if Tn > Tn_max:
                             #    Tn_max = Tn
@@ -392,24 +405,36 @@ class Agent:
                             agent.previous_velocities.append(agent.velocity)
                             # new_y_velocity = np.abs(np.sin(agent.titter / (180 / np.pi)) * agent.velocity) + np.abs(y - agent.position[1]) / (Tn + Tsa)
                             # new_y_velocity = 0.8 * np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity)
-                            new_y_velocity = np.abs(y - agent.position[1]) / (Tn + 3 * Tsa)
-                            agent.velocity = np.sqrt(np.square(np.abs(np.cos(agent.titter / (180 / np.pi)) * agent.velocity)) + np.square(new_y_velocity))
+                            new_y_velocity = np.abs(y - agent.position[1]) / (Tn + 5 * Tsa)
+                            # agent.velocity = np.sqrt(np.square(np.abs(np.cos(agent.titter / (180 / np.pi)) * agent.velocity)) + np.square(new_y_velocity))
+                            agent.velocity = new_y_velocity
                             # agent.velocity = 0.6 * np.sin(self.titter / (180 / np.pi)) * self.velocity
                             # self.velocity = 0.5 * self.velocity
                             # self.retarding_agents.append(agent)
 
-                    
-                    collide_position = (x, y)
-                    # self.avoiding_positions.append(collide_position)
-                    # agent.avoiding_positions.append(collide_position)
-                    self.states.append(cf.FORWARD_TRANSLATION_AVOIDING)
-                    agent.states.append(cf.FORWARD_TRANSLATION_AVOIDING)
+                        
+                        collide_position = (x, y)
+                        # self.avoiding_positions.append(collide_position)
+                        # agent.avoiding_positions.append(collide_position)
+                        self.states.append(cf.FORWARD_TRANSLATION_AVOIDING)
+                        agent.states.append(cf.FORWARD_TRANSLATION_AVOIDING)
 
-                    self.retarding_agents[agent] = collide_position
-                    agent.retarding_agents[self] = collide_position
+                        self.retarding_agents[agent] = collide_position
+                        agent.retarding_agents[self] = collide_position
 
-            # except:
-            #     pass
+                # except:
+                #     pass
+
+    def dodge_too_close_agents(self):
+        euclidean_distance = lambda a, b: np.sqrt(np.square(a[0] - b[0]) + np.square(a[1] - b[1]))
+        neighbours = self.get_neighbours()
+        for agent in neighbours:
+            if euclidean_distance(self.position, agent.position) < 2.3 * cf.AGENT_RADIUS and self.velocity > agent.velocity and agent.id not in self.dodged_agents:
+                self.titter = self.titter + 10
+                self.dodged_agents.append(agent.id)
+            if agent.id in self.dodged_agents and euclidean_distance(self.position, agent.position) > 2.3 * cf.AGENT_RADIUS:
+                self.dodged_agents.remove(agent.id)
+
     
     def position_request(self) -> dict:
             '''
@@ -488,6 +513,7 @@ class Agent:
                         dy = self.approach_target_position[1] - self.position[1] 
                         dx = self.approach_target_position[0] - self.position[0] 
                         self.velocity = cf.NOMINAL_VELOCITY
+                        cf.NOMINAL_VELOCITY = 0.98 * cf.NOMINAL_VELOCITY
                         self.titter = np.arctan(dy/dx) * 180 / np.pi
                         print('titter',self.titter)
                         print('left: ', self.titter)
@@ -514,6 +540,7 @@ class Agent:
                         dy = self.approach_target_position[1] - self.position[1] 
                         dx = self.approach_target_position[0] - self.position[0] 
                         self.velocity = cf.NOMINAL_VELOCITY
+                        cf.NOMINAL_VELOCITY = 0.98 * cf.NOMINAL_VELOCITY
                         self.titter = 180 + np.arctan(dy/dx) * 180 / np.pi
                         print('titter',self.titter)
                         print('right: ', self.titter)

@@ -75,7 +75,7 @@ class Terrain:
     def animate(self):
         if not os.path.exists('output'):
             os.makedirs('output')
-        anim = animation.FuncAnimation(self.plot_figure, self.plot_terrain, frames=400, interval=cf.TRANSLATION_INTERVAL * 1000, blit=True)
+        anim = animation.FuncAnimation(self.plot_figure, self.plot_terrain, frames=600, interval=cf.TRANSLATION_INTERVAL * 1000, blit=True)
         anim.save('output/swarm-control.mp4', writer = 'ffmpeg', dpi=300, fps = 40)
 
     def receive_distress(self, sender_id: int, distress_data: dict):
