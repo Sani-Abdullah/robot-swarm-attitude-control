@@ -54,7 +54,7 @@ class Agent:
             # self.no_obstacle_hole_appraoch()
             pass
         self.retard_in_safety_point_path_agents() # collsion detection and collision avoidance
-        self.dodge_too_close_agents()
+        # self.dodge_too_close_agents()
 
     def translate(self, translation_interval = cf.TRANSLATION_INTERVAL):
         '''
@@ -383,8 +383,8 @@ class Agent:
                 # agent_distance_from_intersection = euclidean_distance(agent.position, (x, y))
                 # distressed_agent_distance_from_intersection = euclidean_distance(self.position, (x, y))
 
-                if y > agent.position[1] and y > self.position[1] and np.abs(T_arrive - t_clear) < 2 * np.max([Tsa, ttsa]) and ((YSD - y > 0 and euclidean_distance(self.position, (XSD, YSD)) > safe_distance_after_intersection) or (ysd - y > 0 and euclidean_distance(agent.position, (xsd, ysd)) > safe_distance_after_intersection)) and agent not in self.retarding_agents and self not in agent.retarding_agents and cf.APPROACHING_TARGET not in self.states and cf.APPROACHING_TARGET not in agent.states:
-                    if euclidean_distance(agent.position, self.position) <= 5:    
+                if y > agent.position[1] and y > self.position[1] and np.abs(T_arrive - t_clear) < 2 * np.max([Tsa, ttsa]) and ((YSD - y > 0 and euclidean_distance(self.position, (XSD, YSD)) > safe_distance_after_intersection) or (ysd - y > 0 and euclidean_distance(agent.position, (xsd, ysd)) > safe_distance_after_intersection)) and agent not in self.retarding_agents and self not in agent.retarding_agents and cf.APPROACHING_TARGET not in self.states and cf.APPROACHING_TARGET not in agent.states and cf.APPROACHED_TARGET not in self.states and cf.APPROACHED_TARGET not in agent.states:
+                    if euclidean_distance(agent.position, self.position) <= 2.3:    
                         self.terrain.plot_axis.plot(x, y, 'x', markersize= 2 * cf.AGENT_RADIUS, c='yellow')
                         if len(self.terrain.plot_axis.lines) > 1:
                             self.terrain.plot_axis.lines.pop(0)
@@ -394,7 +394,7 @@ class Agent:
                             self.previous_velocities.append(self.velocity)
                             # new_y_velocity = np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity) + np.abs(y - self.position[1]) / (tn + ttsa)
                             new_y_velocity = np.abs(y - self.position[1]) / (tn + 5 * ttsa)
-                            self.velocity = new_y_velocity
+                            self.velocity = np.sqrt(2) * new_y_velocity
                             # self.velocity = np.sqrt(np.square(np.abs(np.cos(self.titter / (180 / np.pi)) * self.velocity)) + np.square(new_y_velocity))
                         else:
                             # if Tn > Tn_max:
@@ -407,7 +407,7 @@ class Agent:
                             # new_y_velocity = 0.8 * np.abs(np.sin(self.titter / (180 / np.pi)) * self.velocity)
                             new_y_velocity = np.abs(y - agent.position[1]) / (Tn + 5 * Tsa)
                             # agent.velocity = np.sqrt(np.square(np.abs(np.cos(agent.titter / (180 / np.pi)) * agent.velocity)) + np.square(new_y_velocity))
-                            agent.velocity = new_y_velocity
+                            agent.velocity = np.sqrt(2) * new_y_velocity
                             # agent.velocity = 0.6 * np.sin(self.titter / (180 / np.pi)) * self.velocity
                             # self.velocity = 0.5 * self.velocity
                             # self.retarding_agents.append(agent)
@@ -429,8 +429,11 @@ class Agent:
         euclidean_distance = lambda a, b: np.sqrt(np.square(a[0] - b[0]) + np.square(a[1] - b[1]))
         neighbours = self.get_neighbours()
         for agent in neighbours:
-            if euclidean_distance(self.position, agent.position) < 2.3 * cf.AGENT_RADIUS and self.velocity > agent.velocity and agent.id not in self.dodged_agents:
-                self.titter = self.titter + 10
+            if cf.DODGING_OBSTACLE not in self.states and euclidean_distance(self.position, agent.position) < 5 * cf.AGENT_RADIUS and self.velocity > agent.velocity and agent.id not in self.dodged_agents:
+                if self.titter >= 90:
+                    self.titter = self.titter - 40
+                else:
+                    self.titter = self.titter + 40
                 self.dodged_agents.append(agent.id)
             if agent.id in self.dodged_agents and euclidean_distance(self.position, agent.position) > 2.3 * cf.AGENT_RADIUS:
                 self.dodged_agents.remove(agent.id)
