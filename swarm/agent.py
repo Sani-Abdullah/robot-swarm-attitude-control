@@ -26,6 +26,7 @@ class Agent:
         self.dodged_agents = []
 
         self.states = [cf.FORWARD_TRANSLATION]
+        self.collided = False
 
     def init_cmap(self):
         self.collisions_map = {
@@ -142,6 +143,7 @@ class Agent:
         '''
         Halt when the agent arrives target
         '''
+        euclidean_distance = lambda a, b: np.sqrt(np.square(a[0] - b[0]) + np.square(a[1] - b[1]))
         if cf.APPROACHING_TARGET in self.states:
             # dy = self.approach_target_position[1] - self.position[1] 
             # dx = self.approach_target_position[0] - self.position[0] 
@@ -391,13 +393,13 @@ class Agent:
                 # agent_distance_from_intersection = euclidean_distance(agent.position, (x, y))
                 # distressed_agent_distance_from_intersection = euclidean_distance(self.position, (x, y))
 
-                if y > agent.position[1] and y > self.position[1] and euclidean_distance(agent.position, self.position) <= 2.3:
+                if y > agent.position[1] and y > self.position[1] and euclidean_distance(agent.position, self.position) <= 3:
                     self.terrain.result['detected'] += 1
                     if ((YSD - y > 0 and euclidean_distance(self.position, (XSD, YSD)) > safe_distance_after_intersection) or (ysd - y > 0 and euclidean_distance(agent.position, (xsd, ysd)) > safe_distance_after_intersection)) and agent not in self.retarding_agents and self not in agent.retarding_agents and cf.APPROACHING_TARGET not in self.states and cf.APPROACHING_TARGET not in agent.states and cf.APPROACHED_TARGET not in self.states and cf.APPROACHED_TARGET not in agent.states and cf.HALTING not in agent.states and cf.HALTING not in self.states:
                             self.terrain.result['imminent'] += 1
-                            self.terrain.plot_axis.plot(x, y, 'x', markersize= 2 * cf.AGENT_RADIUS, c='yellow')
-                            if len(self.terrain.plot_axis.lines) > 1:
-                                self.terrain.plot_axis.lines.pop(0)
+                            # self.terrain.plot_figure.axes[self.terrain.plot_count].plot(x, y, 'x', markersize= 2 * cf.AGENT_RADIUS, c='yellow')
+                            # if len(self.terrain.plot_figure.axes[self.terrain.plot_count].lines) > 1:
+                            #     self.terrain.plot_figure.axes[self.terrain.plot_count].lines.pop(0)
                             if Dn > dn:
                                 # if tn > tn_max:
                                 #    tn_max = tn
@@ -439,7 +441,7 @@ class Agent:
         euclidean_distance = lambda a, b: np.sqrt(np.square(a[0] - b[0]) + np.square(a[1] - b[1]))
         neighbours = self.get_neighbours()
         for agent in neighbours:
-            if euclidean_distance(self.position, agent.position) < 0.005 and not self.collisions_map[agent.id]:
+            if euclidean_distance(self.position, agent.position) < 0.05 and not self.collisions_map[agent.id]:
                 self.collisions_map[agent.id] = True
                 self.terrain.result['collisions'] += 1
             if euclidean_distance(self.position, agent.position) > 2 * cf.AGENT_RADIUS:
@@ -504,68 +506,85 @@ class Agent:
         if obstacles:
             sorted_obstacles = sorted(obstacles, key=lambda x: x[1], reverse=True)
             last_obstacle_top_y = sorted_obstacles[0][1] + sorted_obstacles[0][-1]
-            if self.position[1] > last_obstacle_top_y and cf.APPROACHING_TARGET not in self.states and cf.APPROACHED_TARGET not in self.states:
-                self.states.append(cf.APPROACHING_TARGET)
-                # dydx = (self.terrain.target['center'][1] - self.position[1]) / (self.terrain.target['center'][0] - self.position[0])
-                # titter = np.arctan(dydx) * 180 / np.pi
-                # self.titter = np.abs(titter) if dydx > 0 else 180 + titter
-
-                r = self.terrain.target['width'] # + cf.SAFETY_RADIUS + cf.OBSTACLE_ALLOWANCE # agent target convergence radius
-                if self.terrain.target['center'][0] - self.position[0] > 0: # agent is on the left of target
-                    titter_i = lambda i: 180 - i * 180 / len(self.terrain.agents) # the angle of approach from the perspective of the target center
-                    approach_position_x = lambda i: self.terrain.target['center'][0] + r * np.cos(titter_i(i) / (180 / np.pi))
-                    approach_position_y = lambda i: self.terrain.target['center'][1] - r * np.sin(titter_i(i) / (180 / np.pi))
-                    reverse_index = -1
-                    approach_reverse_index = 5
-                    for slot_index in range(len(self.terrain.target_approach_slots)):
-                        index = slot_index
-                        appraoch_index = slot_index
-                        if self.terrain.target_approach_slots[int(np.ceil(len(self.terrain.target_approach_slots) / 2)) - 1]: # if this half (left) is full switch to the other side (right)
-                            index = reverse_index
-                            reverse_index -= 1
-                            appraoch_index = approach_reverse_index
-                            approach_reverse_index -= 1
-                        if not self.terrain.target_approach_slots[index]:
-                            self.terrain.target_approach_slots[index] = True
-                            self.approach_target_position = approach_position_x(appraoch_index), approach_position_y(appraoch_index)
-                            dy = self.approach_target_position[1] - self.position[1] 
-                            dx = self.approach_target_position[0] - self.position[0] 
-                            self.velocity = cf.NOMINAL_VELOCITY
-                            cf.NOMINAL_VELOCITY = 0.98 * cf.NOMINAL_VELOCITY
-                            self.titter = np.arctan(dy/dx) * 180 / np.pi
-                            # print('titter',self.titter)
-                            # print('left: ', self.titter)
-                            # print('left: ', self.terrain.target_approach_slots)
-                            break
-                else: # agent is on the right of target
-                    titter_i = lambda i: i * 180 / len(self.terrain.agents) # the angle of approach from the perspective of the target center
-                    approach_position_x = lambda i: self.terrain.target['center'][0] + r * np.cos(titter_i(i) / (180 / np.pi))
-                    approach_position_y = lambda i: self.terrain.target['center'][1] - r * np.sin(titter_i(i) / (180 / np.pi))
-                    reverse_index = 0
-                    approach_reverse_index = 5
-                    for slot_index in range(len(self.terrain.target_approach_slots)):
-                        appraoch_index = slot_index
-                        true_index = (slot_index + 1) * -1
-                        index = true_index
-                        if self.terrain.target_approach_slots[-int(np.ceil(len(self.terrain.target_approach_slots) / 2))]: # if this half (right) is full switch to the other side (left)
-                            index = reverse_index
-                            reverse_index += 1
-                            appraoch_index = approach_reverse_index
-                            approach_reverse_index -= 1
-                        if not self.terrain.target_approach_slots[index]:
-                            self.terrain.target_approach_slots[index] = True
-                            self.approach_target_position = approach_position_x(appraoch_index), approach_position_y(appraoch_index)
-                            dy = self.approach_target_position[1] - self.position[1] 
-                            dx = self.approach_target_position[0] - self.position[0] 
-                            self.velocity = cf.NOMINAL_VELOCITY
-                            cf.NOMINAL_VELOCITY = 0.98 * cf.NOMINAL_VELOCITY
-                            self.titter = 180 + np.arctan(dy/dx) * 180 / np.pi
-                            # print('titter',self.titter)
-                            # print('right: ', self.titter)
-                            # print('right: ', self.terrain.target_approach_slots)
-                            break
         else:
-            pass                    
+            last_obstacle_top_y = 0
+
+
+        fact_true_count = 0
+        for fact in self.terrain.target_approach_slots:
+            if fact:
+                fact_true_count += 1
+        if fact_true_count >= len(self.terrain.target_approach_slots):
+            self.terrain.target_approach_slots = [False for i in range(len(self.terrain.target_approach_slots))]
+            self.terrain.target_approach_step_count += 1
+        if self.position[1] > last_obstacle_top_y and cf.APPROACHING_TARGET not in self.states and cf.APPROACHED_TARGET not in self.states:
+            self.states.append(cf.APPROACHING_TARGET)
+
+                # if self.approach_step <= -1:
+                #     self.approach_step = self.terrain.target_approach_step_count
+
+            # if self.approach_step <= -1:
+            # dydx = (self.terrain.target['center'][1] - self.position[1]) / (self.terrain.target['center'][0] - self.position[0])
+            # titter = np.arctan(dydx) * 180 / np.pi
+            # self.titter = np.abs(titter) if dydx > 0 else 180 + titter
+
+            r = self.terrain.target['width'] # + cf.SAFETY_RADIUS + cf.OBSTACLE_ALLOWANCE # agent target convergence radius
+            target_dress = 2
+            if self.terrain.target['center'][0] - self.position[0] > 0: # agent is on the left of target
+                titter_i = lambda i: 180 - i * 180 / len(self.terrain.target_approach_slots) # the angle of approach from the perspective of the target center
+                approach_position_x = lambda i: self.terrain.target['center'][0] + r * np.cos(titter_i(i) / (180 / np.pi))
+                approach_position_y = lambda i: self.terrain.target['center'][1] - r * np.sin(titter_i(i) / (180 / np.pi)) - self.terrain.target_approach_step_count * target_dress
+                reverse_index = -1
+                approach_reverse_index = 5
+                for slot_index in range(len(self.terrain.target_approach_slots)):
+                    index = slot_index
+                    appraoch_index = slot_index
+                    if self.terrain.target_approach_slots[int(np.ceil(len(self.terrain.target_approach_slots) / 2)) - 1]: # if this half (left) is full switch to the other side (right)
+                        index = reverse_index
+                        reverse_index -= 1
+                        appraoch_index = approach_reverse_index
+                        approach_reverse_index -= 1
+                    if not self.terrain.target_approach_slots[index]:
+                        self.terrain.target_approach_slots[index] = True
+                        self.approach_target_position = approach_position_x(appraoch_index), approach_position_y(appraoch_index)
+                        dy = self.approach_target_position[1] - self.position[1] 
+                        dx = self.approach_target_position[0] - self.position[0] 
+                        self.velocity = cf.NOMINAL_VELOCITY
+                        cf.NOMINAL_VELOCITY = 0.98 * cf.NOMINAL_VELOCITY
+                        self.titter = np.arctan(dy/dx) * 180 / np.pi
+                        # print('titter',self.titter)
+                        # print('left: ', self.titter)
+                        # print('left: ', self.terrain.target_approach_slots)
+                        break
+            else: # agent is on the right of target
+                titter_i = lambda i: i * 180 / len(self.terrain.target_approach_slots) # the angle of approach from the perspective of the target center
+                approach_position_x = lambda i: self.terrain.target['center'][0] + r * np.cos(titter_i(i) / (180 / np.pi))
+                approach_position_y = lambda i: self.terrain.target['center'][1] - r * np.sin(titter_i(i) / (180 / np.pi)) - self.terrain.target_approach_step_count * target_dress
+                reverse_index = 0
+                approach_reverse_index = 5
+                for slot_index in range(len(self.terrain.target_approach_slots)):
+                    appraoch_index = slot_index
+                    true_index = (slot_index + 1) * -1
+                    index = true_index
+                    if self.terrain.target_approach_slots[-int(np.ceil(len(self.terrain.target_approach_slots) / 2))]: # if this half (right) is full switch to the other side (left)
+                        index = reverse_index
+                        reverse_index += 1
+                        appraoch_index = approach_reverse_index
+                        approach_reverse_index -= 1
+                    if not self.terrain.target_approach_slots[index]:
+                        self.terrain.target_approach_slots[index] = True
+                        self.approach_target_position = approach_position_x(appraoch_index), approach_position_y(appraoch_index)
+                        dy = self.approach_target_position[1] - self.position[1] 
+                        dx = self.approach_target_position[0] - self.position[0] 
+                        self.velocity = cf.NOMINAL_VELOCITY
+                        cf.NOMINAL_VELOCITY = 0.98 * cf.NOMINAL_VELOCITY
+                        self.titter = 180 + np.arctan(dy/dx) * 180 / np.pi
+                        # print('titter',self.titter)
+                        # print('right: ', self.titter)
+                        # print('right: ', self.terrain.target_approach_slots)
+                        break
+        # else:
+        #     pass                    
     def time_to_clear(self, destination: tuple, direction: str = 'free') -> float:
         '''
         How long before the rear-tip of safety radius exits destination

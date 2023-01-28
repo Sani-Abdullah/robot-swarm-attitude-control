@@ -16,10 +16,10 @@ obstacles = [(0, 25, 10, 3), (16, 10, 4, 3)]  # (5, 27, 10, 3),
 # obstacles = [(3, 25, 14, 4)]
 # obstacles = [(0, 25, 20, 4)]
 
-# terrain = Terrain(width=20, height=50, population=20, obstacles=configurations['c'])
+terrain = Terrain(width=20, height=50, population=10, obstacles=configurations['a'])
 # terrain.tester()
-# terrain.plot_terrain()
-# result = terrain.animate()
+terrain.plot_terrain()
+# terrain.animate()
 
 
 def consolidate_result(config, result):
@@ -70,12 +70,12 @@ def consolidate_result(config, result):
         json.dump(this_data, result_file)
 
 
-if __name__ == '__main__':
-    iterations = 20
-    for configuration in ['a', 'b', 'c', 'd', 'e', 'f']:
-        for population in [2, 5, 10, 20, 25, 50]:
-            for _ in range(iterations):
-                terrain = Terrain(width=20, height=50, population=population,
-                                  obstacles=configurations[configuration])
-                result = terrain.animate()
-                consolidate_result(configuration, result)
+# if __name__ == '__main__':
+#     iterations = 20
+#     for configuration in ['a', 'b', 'c', 'd', 'e', 'f']:
+#         for population in [2, 5, 10, 20, 25, 50]:
+#             for _ in range(iterations):
+#                 terrain = Terrain(width=20, height=50, population=population,
+#                                   obstacles=configurations[configuration])
+#                 result = terrain.animate()
+#                 consolidate_result(configuration, result)
