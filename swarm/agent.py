@@ -393,7 +393,7 @@ class Agent:
 
                 if y > agent.position[1] and y > self.position[1] and euclidean_distance(agent.position, self.position) <= 2.3:
                     self.terrain.result['detected'] += 1
-                    if ((YSD - y > 0 and euclidean_distance(self.position, (XSD, YSD)) > safe_distance_after_intersection) or (ysd - y > 0 and euclidean_distance(agent.position, (xsd, ysd)) > safe_distance_after_intersection)) and agent not in self.retarding_agents and self not in agent.retarding_agents and cf.APPROACHING_TARGET not in self.states and cf.APPROACHING_TARGET not in agent.states and cf.APPROACHED_TARGET not in self.states and cf.APPROACHED_TARGET not in agent.states:
+                    if ((YSD - y > 0 and euclidean_distance(self.position, (XSD, YSD)) > safe_distance_after_intersection) or (ysd - y > 0 and euclidean_distance(agent.position, (xsd, ysd)) > safe_distance_after_intersection)) and agent not in self.retarding_agents and self not in agent.retarding_agents and cf.APPROACHING_TARGET not in self.states and cf.APPROACHING_TARGET not in agent.states and cf.APPROACHED_TARGET not in self.states and cf.APPROACHED_TARGET not in agent.states and cf.HALTING not in agent.states and cf.HALTING not in self.states:
                             self.terrain.result['imminent'] += 1
                             self.terrain.plot_axis.plot(x, y, 'x', markersize= 2 * cf.AGENT_RADIUS, c='yellow')
                             if len(self.terrain.plot_axis.lines) > 1:

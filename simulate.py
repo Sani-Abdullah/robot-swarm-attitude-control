@@ -16,7 +16,7 @@ obstacles = [(0, 25, 10, 3), (16, 10, 4, 3)]  # (5, 27, 10, 3),
 # obstacles = [(3, 25, 14, 4)]
 # obstacles = [(0, 25, 20, 4)]
 
-# terrain = Terrain(width=20, height=50, population=20, obstacles=config['a'])
+# terrain = Terrain(width=20, height=50, population=20, obstacles=configurations['c'])
 # terrain.tester()
 # terrain.plot_terrain()
 # result = terrain.animate()
