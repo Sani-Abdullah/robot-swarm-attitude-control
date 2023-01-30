@@ -52,11 +52,16 @@ class Terrain:
         }
         self.target_approach_slots = [False for i in range(len(self.agents))]
 
-        self.result = {
+        self.result_ca = {
             'population': len(self.agents),
             'detected': 0,
             'imminent': 0,
             'collisions': 0,
+        }
+
+        self.result_pp = {
+            'population': len(self.agents),
+            'distance': 0,
         }
 
         for agent in self.agents:
@@ -100,7 +105,7 @@ class Terrain:
             agents_y.append(agent.position[1])
 
         # if self.missions_completed_trigger():
-        #     print('result: ', self.result)
+        #     print('result: ', self.result_ca)
 
         if len(self.plot_axis.lines) > 1:
             self.plot_axis.lines.pop(0)
@@ -111,7 +116,7 @@ class Terrain:
         # agent_positions.set_data()
         return agent_positions
 
-    def animate(self):
+    def animate(self, type):
         # if not os.path.exists('output'):
         #     os.makedirs('output')
 
@@ -120,14 +125,9 @@ class Terrain:
 
         # iterations = 2
         # for _ in range(iterations):
-        for _ in range(600):
-            for agent in self.agents:
-                agent.sense()
-            for agent in self.agents:
-                agent.translate()
-        # self.init_terrain()
 
-        return self.results_make()
+        return self.results_animate('pp')
+
 
 
 
@@ -136,14 +136,35 @@ class Terrain:
             if cf.APPROACHED_TARGET not in agent.states:
                 return False
             return True
+        
+    def results_animate(self, type):
+        for _ in range(600):
+            for agent in self.agents:
+                agent.sense()
+            for agent in self.agents:
+                agent.translate()
+        # self.init_terrain()
 
-    def results_make(self) -> dict:
-        # self.result['detected'] /= iterations
-        # self.result['imminent'] /= iterations
-        # self.result['collisions'] /= iterations
-        print(self.result)
+        if type == 'ca':
+            return self.results_ca_make()
+        elif type == 'pp':
+            return self.results_pp_make()
+        else:
+            raise Exception(f'{type} not a result type. Use one of ca | pp')
 
-        return self.result
+
+
+
+    def results_ca_make(self) -> dict:
+        # self.result_ca['detected'] /= iterations
+        # self.result_ca['imminent'] /= iterations
+        # self.result_ca['collisions'] /= iterations
+        print(self.result_ca)
+        return self.result_ca
+    
+    def results_pp_make(self) -> dict:
+        print(self.result_pp)
+        return self.result_pp
 
     def receive_distress(self, sender_id: int, distress_data: dict):
         '''

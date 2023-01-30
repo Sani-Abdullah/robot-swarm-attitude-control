@@ -76,7 +76,12 @@ class Agent:
         velocity_x_component = self.velocity * np.cos(self.titter / (180 / np.pi))
         velocity_y_component = self.velocity * np.sin(self.titter / (180 / np.pi))
         # recall s = vt
+        self.initial_position = self.position
         self.position = self.position[0] + velocity_x_component * translation_interval, self.position[1] + velocity_y_component * translation_interval
+
+        euclidean_distance = lambda a, b: np.sqrt(np.square(a[0] - b[0]) + np.square(a[1] - b[1]))
+        
+        self.terrain.result_pp['distance'] += euclidean_distance(self.initial_position, self.position)
 
     def directive_complier(self, directive: dict):
         '''
@@ -392,9 +397,9 @@ class Agent:
                 # distressed_agent_distance_from_intersection = euclidean_distance(self.position, (x, y))
 
                 if y > agent.position[1] and y > self.position[1] and euclidean_distance(agent.position, self.position) <= 2.3:
-                    self.terrain.result['detected'] += 1
+                    self.terrain.result_ca['detected'] += 1
                     if ((YSD - y > 0 and euclidean_distance(self.position, (XSD, YSD)) > safe_distance_after_intersection) or (ysd - y > 0 and euclidean_distance(agent.position, (xsd, ysd)) > safe_distance_after_intersection)) and agent not in self.retarding_agents and self not in agent.retarding_agents and cf.APPROACHING_TARGET not in self.states and cf.APPROACHING_TARGET not in agent.states and cf.APPROACHED_TARGET not in self.states and cf.APPROACHED_TARGET not in agent.states and cf.HALTING not in agent.states and cf.HALTING not in self.states:
-                            self.terrain.result['imminent'] += 1
+                            self.terrain.result_ca['imminent'] += 1
                             self.terrain.plot_axis.plot(x, y, 'x', markersize= 2 * cf.AGENT_RADIUS, c='yellow')
                             if len(self.terrain.plot_axis.lines) > 1:
                                 self.terrain.plot_axis.lines.pop(0)
@@ -441,7 +446,7 @@ class Agent:
         for agent in neighbours:
             if euclidean_distance(self.position, agent.position) < 0.005 and not self.collisions_map[agent.id]:
                 self.collisions_map[agent.id] = True
-                self.terrain.result['collisions'] += 1
+                self.terrain.result_ca['collisions'] += 1
             if euclidean_distance(self.position, agent.position) > 2 * cf.AGENT_RADIUS:
                 self.collisions_map[agent.id] = False
             # if cf.DODGING_OBSTACLE not in self.states and euclidean_distance(self.position, agent.position) < 5 * cf.AGENT_RADIUS and self.velocity > agent.velocity and agent.id not in self.dodged_agents:

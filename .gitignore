@@ -3,3 +3,4 @@
 *.py[cod]
 *.mp4
 **/result
+*.html
